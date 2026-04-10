@@ -5,7 +5,8 @@ import sys
 import datetime
 import requests
 import time
-import urllib.parse #
+import urllib.parse # Thư viện mã hóa link
+
 # ==========================================
 # 0. BẢNG MÀU CHO TERMUX (ANSI COLORS)
 # ==========================================
@@ -27,7 +28,7 @@ SECRET_LINK = "XWORLD_BIMAT"
 # THAY LINK NÀY THÀNH LINK BLOGGER CỦA BẠN
 LINK_BLOGGER = "https://keyxworld.blogspot.com/2026/03/keyfree_11.html" 
 
-# CẤU HÌNH LINK WEB RÚT GỌN (Ví dụ: Link4M)
+# CẤU HÌNH LINK4M CHUẨN
 URL_API_RUT_GON = "https://link4m.co/api-shorten/v2" 
 API_TOKEN = "6976fd695e4d1128550c76d3" 
 
@@ -37,9 +38,6 @@ FILE_LUU_KEY = "key_da_luu.txt"
 # ==========================================
 # 2. CÁC HÀM XỬ LÝ CHÍNH
 # ==========================================
-def xoa_man_hinh():
-    os.system('clear')
-
 def lay_hoac_tao_ma_may():
     if os.path.exists(FILE_LUU_MA_MAY):
         with open(FILE_LUU_MA_MAY, "r") as file:
@@ -60,32 +58,25 @@ def tao_link_rut_gon(ma_may, ngay_hom_nay):
     token_bao_mat = hashlib.sha256(chuoi_tao_token.encode('utf-8')).hexdigest()[:10]
     link_goc = f"{LINK_BLOGGER}?id={ma_may}&token={token_bao_mat}"
     
-    # Mã hóa link gốc theo chuẩn urlencode như ảnh hướng dẫn ($long_url)
+    # Mã hóa link gốc theo chuẩn Link4M
     link_ma_hoa = urllib.parse.quote(link_goc)
     
     try:
-        # Xây dựng link gọi API đúng cấu trúc: .../v2?api={token}&url={link}
         url_full = f"{URL_API_RUT_GON}?api={API_TOKEN}&url={link_ma_hoa}"
-        
         headers = {
             "User-Agent": "Mozilla/5.0 (Linux; Android 10; Termux) AppleWebKit/537.36"
         }
         
-        # Gửi yêu cầu GET
         phan_hoi_goc = requests.get(url_full, headers=headers, timeout=10)
         phan_hoi = phan_hoi_goc.json()
         
-        # Link4M trả về JSON: {"status":"success","shortenedUrl":"..."}
         if phan_hoi.get("status") == "success":
             return phan_hoi.get("shortenedUrl")
         else:
-            # Nếu có lỗi, tool sẽ báo cho bạn biết để sửa
             print(f"\n{Mau.DO}[!] Link4M báo lỗi: {phan_hoi.get('message', 'Không xác định')}{Mau.RESET}")
             return link_goc
-            
     except Exception as e:
-        return link_goc
-
+        return link_goc 
 
 def doc_key_da_luu():
     if os.path.exists(FILE_LUU_KEY):
@@ -101,9 +92,9 @@ def luu_key_moi(key):
 # 3. LUỒNG CHẠY CHÍNH CỦA TOOL
 # ==========================================
 def chay_tool():
-    xoa_man_hinh()
-    print(f"{Mau.XANH_LO}{Mau.IN_DAM}" + "━"*45)
-    print("             🔐 XWORLD TOOL 🔐             ")
+    # ĐÃ XÓA LỆNH CLEAR MÀN HÌNH Ở ĐÂY
+    print(f"\n{Mau.XANH_LO}{Mau.IN_DAM}" + "━"*45)
+    print("             🔐 VƯỢT LINK ĐỂ LẤY KEY🔐             ")
     print("━"*45 + f"{Mau.RESET}")
 
     ma_may = lay_hoac_tao_ma_may()
@@ -139,7 +130,7 @@ def chay_tool():
             sys.exit(0)
 
     # ========================================================
-    xoa_man_hinh()
+    # ĐÃ XÓA LỆNH CLEAR MÀN HÌNH Ở ĐÂY
     print(f"\n{Mau.XANH_LA}====== TOOL BẮT ĐẦU HOẠT ĐỘNG ======{Mau.RESET}")
     print(f"{Mau.HONG}[+] Đang tải dữ liệu server...{Mau.RESET}")
     
@@ -154,10 +145,8 @@ if __name__ == "__main__":
     try:
         chay_tool()
     except KeyboardInterrupt:
-        # Bắt lỗi khi người dùng bấm Ctrl + C
         print(f"\n\n{Mau.DO}[!] Bạn đã thoát chương trình.{Mau.RESET}")
         sys.exit(0)
     except Exception as e:
-        # Bắt tất cả các lỗi khác để không lộ code
         print(f"\n\n{Mau.DO}[!] Đã xảy ra lỗi không xác định! Vui lòng thử lại.{Mau.RESET}")
         sys.exit(1)
