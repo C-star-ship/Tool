@@ -57,7 +57,6 @@ def print_banner():
     info_lines = [
         (f"{do}🔥 TÊN TOOL       : {xanhla}Vietx sms", "🔥 TÊN TOOL       : Vietx sms"),
         (f"{xanhla}🔥 BOX ZALO       : {vang}https://zalo.me/0567101487", "🔥 BOX ZALO       : https://zalo.me/0567101487"),
-        (f"{xanhnhat}🔥 CHỨC NĂNG      : {tim}Spam tin nhắn SMS", "🔥 CHỨC NĂNG      : Spam tin nhắn SMS"),
         (f"{xanhla}🔥 THAM KHẢO SHOP : {trang}https://byvn.net/qIeK", "🔥 THAM KHẢO SHOP : https://byvn.net/qIeK")
     ]
 
