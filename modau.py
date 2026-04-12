@@ -57,7 +57,7 @@ def print_banner():
     info_lines = [
         (f"{do}🔥 TÊN TOOL       : {xanhla}Vietx sms", "🔥 TÊN TOOL       : Vietx sms"),
         (f"{xanhla}🔥 BOX ZALO       : {vang}https://zalo.me/0567101487", "🔥 BOX ZALO       : https://zalo.me/0567101487"),
-        (f"{xanhla}🔥 THAM KHẢO SHOP : {trang}https://byvn.net/qIeK", "🔥 THAM KHẢO SHOP : https://byvn.net/qIeK")
+        (f"{xanhla}🔥 THAM KHẢO SHOP : {trang}https://shopvietx.io.vn", "🔥 THAM KHẢO SHOP : https://shopvietx.io.vn")
     ]
 
     # Tự động tính toán chiều rộng của khung dựa trên dòng dài nhất
