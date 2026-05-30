@@ -13,10 +13,11 @@ from requests.adapters import HTTPAdapter
 from urllib3.util import Retry
 
 # ==========================================
-# CẤU HÌNH HỆ THỐNG LICENSE (BẢN QUYỀN)
+# CẤU HÌNH HỆ THỐNG LICENSE CHUẨN SHOPVIETX
 # ==========================================
 SERVER_URL = "https://shopvietx.io.vn/api/license"
 KEY_FILE_PATH = os.path.join(os.path.expanduser("~"), ".matrix_sms_key")
+TOOL_NAME = "FB Auto Tool"  # Đổi tên khớp với sản phẩm được thiết lập trên server của bạn
 
 # Cấu hình màu sắc hiển thị chuyên nghiệp trên Termux/PE
 try:
@@ -69,7 +70,7 @@ class CloudTestingEngine:
         logger.error(f"{R}[!] Lỗi nghiêm trọng: Không tìm thấy cơ sở dữ liệu API trong RAM!{RESET}")
         return {"sms_endpoints": [], "call_endpoints": []}
 
-    def sync_ivr_cookies(self, phone: str) -> None:
+    def sync_ivr_cookies((self, phone: str) -> None:
         init_url = "https://lk.vayxanh.com/"
         params = {"phone": phone, "amount": "2000000", "term": "7"}
         try:
@@ -153,59 +154,74 @@ class CloudTestingEngine:
         print(f"{G}[✓] Hoàn tất toàn bộ chuỗi tích hợp.{RESET}")
 
 # ==========================================
-# SỬA LỖI LẤY MÃ MÁY AN TOÀN TRÊN TERMUX/PE
+# THU THẬP MÃ MÁY THEO CẤU TRÚC FILE KHÁCH HÀNG
 # ==========================================
 def get_hardware_id() -> str:
-    """Lấy mã máy an toàn, tuyệt đối không gây crash lỗi hệ thống"""
+    """HWID ổn định — Đọc/Ghi an toàn không gây lỗi văng hệ thống"""
     current_os = platform.system().lower()
-    raw_id = ""
+    
+    # Nếu chạy trên môi trường Termux (Android), bám sát thư mục lưu trữ của file fb_tool
+    if current_os != "windows":
+        machine_dir = "/sdcard/Documents"
+        machine_file = os.path.join(machine_dir, ".svx_machine")
+        try:
+            if os.path.exists(machine_file):
+                hwid = open(machine_file, "r", encoding="utf-8").read().strip()
+                if hwid and len(hwid) == 32:
+                    return hwid.upper()
+        except:
+            pass
 
+    # Quy trình fallback tạo chuỗi định danh duy nhất
+    parts = []
     try:
         if current_os == "windows":
-            # Chạy an toàn trên Windows/Windows PE
             cmd = "wmic csproduct get uuid"
             output = subprocess.check_output(cmd, shell=True, stderr=subprocess.DEVNULL).decode().split()
-            if len(output) >= 2:
-                raw_id = output[1]
+            if len(output) >= 2: parts.append(output[1])
         else:
-            # Chạy an toàn trên Termux Android / Linux
-            # Thử lấy ID Android thông qua lệnh getprop của Termux
-            try:
-                raw_id = subprocess.check_output("getprop ro.serialno", shell=True, stderr=subprocess.DEVNULL).decode().strip()
-            except:
-                pass
-            
-            if not raw_id:
-                # Nếu không có quyền lấy serial, quét các file machine-id chuẩn Linux
-                for path in ["/etc/machine-id", "/var/lib/dbus/machine-id"]:
-                    if os.path.exists(path):
-                        with open(path, "r") as f:
-                            raw_id = f.read().strip()
-                        break
-    except Exception:
+            s = subprocess.check_output(["getprop", "ro.serialno"], stderr=subprocess.DEVNULL, timeout=2).decode().strip()
+            if s and s != "unknown": parts.append(s)
+    except:
         pass
 
-    # Nếu tất cả các cách trên đều thất bại, tự tạo một ID dựa trên thông tin chip/user Termux
-    if not raw_id or "UNKNOWN" in raw_id.upper():
-        raw_id = f"{platform.processor()}_{platform.node()}_{os.getlogin() if hasattr(os, 'getlogin') else 'termux'}"
+    try:
+        parts.append(platform.node())
+        parts.append(platform.system())
+    except:
+        pass
 
-    return hashlib.md5(raw_id.encode('utf-8')).hexdigest().upper()
+    raw = "|".join(parts) if parts else "MATRIX_FALLBACK_DEVICE"
+    hwid = hashlib.md5(raw.encode('utf-8')).hexdigest().upper()
+
+    if current_os != "windows":
+        try:
+            os.makedirs(machine_dir, exist_ok=True)
+            open(machine_file, "w", encoding="utf-8").write(hwid.lower())
+        except:
+            pass
+
+    return hwid
 
 def verify_license_key(key: str, hardware_id: str) -> bool:
+    """Xác thực định kỳ với API Endpoint /verify"""
     try:
-        payload = {"license_key": key, "hwid": hardware_id, "tool": "matrix_sms"}
-        response = requests.post(SERVER_URL, json=payload, timeout=8)
+        payload = {"key": key, "hwid": hardware_id.lower()}
+        response = requests.post(f"{SERVER_URL}/verify", json=payload, timeout=8)
         if response.status_code == 200:
-            res_data = response.json()
-            if res_data.get("status") == "success" or res_data.get("active") is True:
-                return True
-    except Exception:
-        pass
+            data = response.json()
+            pname = data.get("product_name", "")
+            if pname and pname != TOOL_NAME:
+                return False
+            return True
+    except:
+        return True  # Cho phép chạy offline nếu server gặp sự cố nghẽn mạng
     return False
 
 def check_authentication_flow():
     hw_id = get_hardware_id()
     
+    # Kiểm tra tệp lưu trữ key cục bộ
     if os.path.exists(KEY_FILE_PATH):
         try:
             with open(KEY_FILE_PATH, "r", encoding="utf-8") as f:
@@ -225,26 +241,41 @@ def check_authentication_flow():
         print(f"  • Vui lòng gửi Mã máy trên cho Admin để mua bản quyền.")
         print(f"{Y}" + "-" * 64 + f"{RESET}")
         
-        user_key = input(f"{G}[?] Nhập Key bản quyền (Bấm '0' để thoát): {RESET}").strip()
+        user_key = input(f"{G}[?] Nhập Key bản quyền (Bấm '0' để thoát): {RESET}").strip().upper()
         
         if user_key == "0":
             sys.exit(0)
         if not user_key:
             continue
             
-        print(f"{Y}[+] Đang kiểm tra mã khóa trên hệ thống Server...{RESET}")
-        if verify_license_key(user_key, hw_id):
-            try:
+        print(f"{Y}[+] Đang gửi yêu cầu kích hoạt tới Server...{RESET}")
+        try:
+            payload = {
+                "key": user_key, 
+                "hwid": hw_id.lower(),
+                "device_name": f"{platform.node()} ({platform.system()})"
+            }
+            response = requests.post(f"{SERVER_URL}/activate", json=payload, timeout=10)
+            if response.status_code == 200:
+                data = response.json()
+                pname = data.get("product_name", "")
+                if pname and pname != TOOL_NAME:
+                    print(f"{R}❌ Key này thuộc sản phẩm '{pname}', không áp dụng cho cấu trúc hiện tại!{RESET}")
+                    time.sleep(2)
+                    continue
+                
                 with open(KEY_FILE_PATH, "w", encoding="utf-8") as f:
                     f.write(user_key)
-            except:
-                pass
-            print(f"{G}[✓] KÍCH HOẠT THÀNH CÔNG! Đang vào hệ thống...{RESET}")
-            time.sleep(1.5)
-            return True
-        else:
-            print(f"{R}[-] Lỗi: Key sai, hết hạn hoặc không trùng khớp Mã máy!{RESET}")
-            input(f"\n{Y}[Nhấn Enter để thử lại...]{RESET}")
+                print(f"{G}[✓] KÍCH HOẠT THÀNH CÔNG! Đang khởi động...{RESET}")
+                time.sleep(1.5)
+                return True
+            else:
+                err_msg = response.json().get('detail', 'Mã khóa không tồn tại hoặc sai thiết bị!')
+                print(f"{R}❌ Lỗi: {err_msg}{RESET}")
+                time.sleep(2)
+        except Exception as e:
+            print(f"{R}❌ Không thể liên kết tới máy chủ xác thực: {e}{RESET}")
+            time.sleep(2)
 
 def show_banner_introduction():
     os.system("cls" if platform.system().lower() == "windows" else "clear")
@@ -254,7 +285,7 @@ def show_banner_introduction():
     print(f"{W}         MATRIX NOTIFICATION TESTING SYSTEM SYSTEM          ")
     print(f"{W}   Chạy trên: Windows PE / Windows Desktop / Termux (Linux) ")
     print(f"{B}" + "=" * 64)
-    print(f"  • Phiên bản: Cloud Integration v3.5 (Chạy trên RAM)")
+    print(f"  • Phiên bản: Cloud Integration v4.0 (Chạy trên RAM)")
     print(f"  • Hệ điều hành: {platform.system()} {platform.release()}")
     print(f"  • Mã máy của bạn: {Y}{hw_id}{RESET}")
     print(f"  • Trạng thái bản quyền: {G}Đã kích hoạt [✓]{RESET}")
