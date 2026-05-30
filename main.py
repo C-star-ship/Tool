@@ -17,7 +17,7 @@ from urllib3.util import Retry
 # ==========================================
 SERVER_URL = "https://shopvietx.io.vn/api/license"
 KEY_FILE_PATH = os.path.join(os.path.expanduser("~"), ".matrix_sms_key")
-TOOL_NAME = "FB Auto Tool"  # Đổi tên khớp với sản phẩm được thiết lập trên server của bạn
+TOOL_NAME = "FB Auto Tool"  # Sửa lại tên này nếu server bạn đặt tên khác
 
 # Cấu hình màu sắc hiển thị chuyên nghiệp trên Termux/PE
 try:
@@ -70,7 +70,7 @@ class CloudTestingEngine:
         logger.error(f"{R}[!] Lỗi nghiêm trọng: Không tìm thấy cơ sở dữ liệu API trong RAM!{RESET}")
         return {"sms_endpoints": [], "call_endpoints": []}
 
-    def sync_ivr_cookies((self, phone: str) -> None:
+    def sync_ivr_cookies(self, phone: str) -> None:
         init_url = "https://lk.vayxanh.com/"
         params = {"phone": phone, "amount": "2000000", "term": "7"}
         try:
@@ -154,13 +154,11 @@ class CloudTestingEngine:
         print(f"{G}[✓] Hoàn tất toàn bộ chuỗi tích hợp.{RESET}")
 
 # ==========================================
-# THU THẬP MÃ MÁY THEO CẤU TRÚC FILE KHÁCH HÀNG
+# THU THẬP MÃ MÁY AN TOÀN TRÊN TERMUX/WINDOWS PE
 # ==========================================
 def get_hardware_id() -> str:
-    """HWID ổn định — Đọc/Ghi an toàn không gây lỗi văng hệ thống"""
     current_os = platform.system().lower()
     
-    # Nếu chạy trên môi trường Termux (Android), bám sát thư mục lưu trữ của file fb_tool
     if current_os != "windows":
         machine_dir = "/sdcard/Documents"
         machine_file = os.path.join(machine_dir, ".svx_machine")
@@ -172,7 +170,6 @@ def get_hardware_id() -> str:
         except:
             pass
 
-    # Quy trình fallback tạo chuỗi định danh duy nhất
     parts = []
     try:
         if current_os == "windows":
@@ -204,7 +201,6 @@ def get_hardware_id() -> str:
     return hwid
 
 def verify_license_key(key: str, hardware_id: str) -> bool:
-    """Xác thực định kỳ với API Endpoint /verify"""
     try:
         payload = {"key": key, "hwid": hardware_id.lower()}
         response = requests.post(f"{SERVER_URL}/verify", json=payload, timeout=8)
@@ -215,13 +211,12 @@ def verify_license_key(key: str, hardware_id: str) -> bool:
                 return False
             return True
     except:
-        return True  # Cho phép chạy offline nếu server gặp sự cố nghẽn mạng
+        return True
     return False
 
 def check_authentication_flow():
     hw_id = get_hardware_id()
     
-    # Kiểm tra tệp lưu trữ key cục bộ
     if os.path.exists(KEY_FILE_PATH):
         try:
             with open(KEY_FILE_PATH, "r", encoding="utf-8") as f:
