@@ -17,7 +17,7 @@ from urllib3.util import Retry
 # ==========================================
 SERVER_URL = "https://shopvietx.io.vn/api/license"
 KEY_FILE_PATH = os.path.join(os.path.expanduser("~"), ".matrix_sms_key")
-TOOL_NAME = "FB Auto Tool"  # Sửa lại tên này nếu server bạn đặt tên khác
+TOOL_NAME = "Matrix SMS"  # Sửa lại tên này nếu server bạn đặt tên khác
 
 # Cấu hình màu sắc hiển thị chuyên nghiệp trên Termux/PE
 try:
@@ -161,7 +161,7 @@ def get_hardware_id() -> str:
     
     if current_os != "windows":
         machine_dir = "/sdcard/Documents"
-        machine_file = os.path.join(machine_dir, ".svx_machine")
+        machine_file = os.path.join(machine_dir, ".matrix_machine")
         try:
             if os.path.exists(machine_file):
                 hwid = open(machine_file, "r", encoding="utf-8").read().strip()
@@ -280,7 +280,7 @@ def show_banner_introduction():
     print(f"{W}         MATRIX NOTIFICATION TESTING SYSTEM SYSTEM          ")
     print(f"{W}   Chạy trên: Windows PE / Windows Desktop / Termux (Linux) ")
     print(f"{B}" + "=" * 64)
-    print(f"  • Phiên bản: Cloud Integration v4.0 (Chạy trên RAM)")
+    print(f"  • Phiên bản: Cloud Integration v4.5 (Chạy trên RAM)")
     print(f"  • Hệ điều hành: {platform.system()} {platform.release()}")
     print(f"  • Mã máy của bạn: {Y}{hw_id}{RESET}")
     print(f"  • Trạng thái bản quyền: {G}Đã kích hoạt [✓]{RESET}")
@@ -294,31 +294,36 @@ def render_terminal_menu():
     print(f"{B}═{RESET}"*64)
 
 def run_application():
-    check_authentication_flow()
-    show_banner_introduction()
-    core_engine = CloudTestingEngine()
-    
-    while True:
-        render_terminal_menu()
-        cmd = input(f"{G}[?] Nhập tùy chọn lệnh (0-2): {RESET}").strip()
+    try:
+        check_authentication_flow()
+        show_banner_introduction()
+        core_engine = CloudTestingEngine()
         
-        if cmd == "0":
-            print(f"{G}[+] Bộ nhớ đệm đã được giải phóng sạch sẽ khỏi RAM. Đóng!{RESET}")
-            break
-        elif cmd in ["1", "2"]:
-            phone = input(f"{G}[?] Nhập số điện thoại mục tiêu cần test: {RESET}").strip()
-            if not phone or len(phone) < 9 or not phone.isdigit():
-                print(f"{R}[-] Lỗi: Số điện thoại không đúng định dạng!{RESET}")
-                continue
-                
-            if cmd == "1":
-                core_engine.trigger_sms_suite(phone)
-            elif cmd == "2":
-                core_engine.trigger_combined_suite(phone)
-                
-            input(f"\n{Y}[Nhấn nút Enter để tiếp tục...]{RESET}")
-        else:
-            print(f"{R}[-] Mã lệnh không hợp lệ!{RESET}")
+        while True:
+            render_terminal_menu()
+            cmd = input(f"{G}[?] Nhập tùy chọn lệnh (0-2): {RESET}").strip()
+            
+            if cmd == "0":
+                print(f"{G}[+] Bộ nhớ đệm đã được giải phóng sạch sẽ khỏi RAM. Đóng!{RESET}")
+                break
+            elif cmd in ["1", "2"]:
+                phone = input(f"{G}[?] Nhập số điện thoại mục tiêu cần test: {RESET}").strip()
+                if not phone or len(phone) < 9 or not phone.isdigit():
+                    print(f"{R}[-] Lỗi: Số điện thoại không đúng định dạng!{RESET}")
+                    continue
+                    
+                if cmd == "1":
+                    core_engine.trigger_sms_suite(phone)
+                elif cmd == "2":
+                    core_engine.trigger_combined_suite(phone)
+                    
+                input(f"\n{Y}[Nhấn nút Enter để tiếp tục...]{RESET}")
+            else:
+                print(f"{R}[-] Mã lệnh không hợp lệ!{RESET}")
+    except KeyboardInterrupt:
+        # Tóm gọn vòng trong nếu bộ chặn của run.py chưa kích hoạt kịp
+        os.system("cls" if platform.system().lower() == "windows" else "clear")
+        sys.exit(0)
 
 if __name__ == "__main__":
     run_application()
