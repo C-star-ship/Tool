@@ -60,39 +60,11 @@ class CloudTestingEngine:
         return {"sms_endpoints": [], "call_endpoints": []}
 
     def sync_ivr_cookies(self, phone: str) -> None:
-        """Đồng bộ phiên kết nối (Cookie) cho cổng IVR VayXanh - ĐÃ SỬA THEO 6.PY"""
+        """Đồng bộ phiên kết nối (Cookie) cho cổng IVR VayXanh"""
         init_url = "https://lk.vayxanh.com/"
-        params = {
-            "phone": phone, 
-            "amount": "2000000", 
-            "term": "7",
-            "utm_source": "direct_vayxanh",
-            "utm_medium": "organic",
-            "utm_campaign": "direct_vayxanh",
-            "utm_content": "mainpage_submit"
-        }
-        headers = {
-            'accept': 'application/json, text/plain, */*',
-            'accept-language': 'vi-VN',
-            'origin': 'https://lk.vayxanh.com',
-            'referer': f'https://lk.vayxanh.com/?phone={phone}&amount=2000000&term=7',
-            'user-agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Mobile Safari/537.36',
-            'sec-ch-ua': '"Chromium";v="127", "Not)A;Brand";v="99", "Microsoft Edge Simulate";v="127", "Lemur";v="127"',
-            'sec-ch-ua-mobile': '?1',
-            'sec-ch-ua-platform': '"Android"',
-            'sec-fetch-dest': 'empty',
-            'sec-fetch-mode': 'cors',
-            'sec-fetch-site': 'same-origin'
-        }
+        params = {"phone": phone, "amount": "2000000", "term": "7"}
         try:
-            # Gửi request kèm tham số utm và bộ headers di động giả lập
-            self.session.get(init_url, params=params, headers=headers, timeout=self.timeout)
-            
-            # Kích hoạt cơ chế Fallback nếu Server chưa nhả cookie _cabinet_key
-            cookies_dict = requests.utils.dict_from_cookiejar(self.session.cookies)
-            if "_cabinet_key" not in cookies_dict:
-                config_url = "https://lk.vayxanh.com/internal/client/config"
-                self.session.get(config_url, headers=headers, timeout=self.timeout)
+            self.session.get(init_url, params=params, timeout=self.timeout)
         except Exception:
             pass
 
@@ -101,23 +73,7 @@ class CloudTestingEngine:
         name = api.get("name", "Dịch vụ ẩn danh")
         url = api.get("url")
         method = api.get("method", "POST").upper()
-        headers = api.get("headers", {}).copy() # Dùng .copy() để không ghi đè dữ liệu gốc
-        
-        # ĐÃ SỬA: Ép định dạng headers di động riêng cho luồng VayXanh để bypass WAF
-        if url and "vayxanh" in url.lower():
-            headers.update({
-                'accept': 'application/json, text/plain, */*',
-                'accept-language': 'vi-VN',
-                'origin': 'https://lk.vayxanh.com',
-                'referer': f'https://lk.vayxanh.com/?phone={phone}&amount=2000000&term=7',
-                'user-agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Mobile Safari/537.36',
-                'sec-ch-ua': '"Chromium";v="127", "Not)A;Brand";v="99", "Microsoft Edge Simulate";v="127", "Lemur";v="127"',
-                'sec-ch-ua-mobile': '?1',
-                'sec-ch-ua-platform': '"Android"',
-                'sec-fetch-dest': 'empty',
-                'sec-fetch-mode': 'cors',
-                'sec-fetch-site': 'same-origin'
-            })
+        headers = api.get("headers", {})
         
         phone_no_zero = phone[1:] if phone.startswith("0") else phone
         phone_84 = "84" + phone_no_zero
