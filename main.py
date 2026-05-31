@@ -13,15 +13,16 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util import Retry
 
-# ==========================================
-# CẤU HÌNH HỆ THỐNG LICENSE (BẢN QUYỀN)
-# ==========================================
+# =================================================================
+# CẤU HÌNH HỆ THỐNG LICENSE (BẢN QUYỀN SHOPVIETX)
+# =================================================================
 SERVER_URL = "https://shopvietx.io.vn/api/license"
+TOOL_NAME = "spam call sms"  # Định danh chuẩn để không bị lỗi khi tạo/quản lý Key
 KEY_FILE_PATH = os.path.join(os.path.expanduser("~"), ".matrix_sms_key")
 
-# ==========================================
-# CẤU HÌNH LOGGING GỌN GÀNG CHO MÔI TRƯỜNG PE
-# ==========================================
+# =================================================================
+# CẤU HÌNH LOGGING GỌN GÀNG CHO MÔI TRƯỜNG TERMINAL / PE
+# =================================================================
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(message)s",
@@ -36,11 +37,11 @@ class CloudTestingEngine:
         self.api_database = self.load_apis_from_memory()
 
     def load_apis_from_memory(self) -> Dict[str, List[Any]]:
-        """Đọc dữ liệu từ bộ nhớ RAM (globals), nếu không thấy thì tự động nạp từ file apis_config.json cục bộ"""
+        """Đọc dữ liệu từ bộ nhớ RAM (globals), tự động Fallback đọc file apis_config.json cục bộ"""
         if 'IN_MEMORY_DB' in globals():
             return globals()['IN_MEMORY_DB']
         
-        # Tự động tìm kiếm file cấu hình cục bộ để chạy độc lập (Standalone) ổn định
+        # Tự động tìm kiếm file cấu hình cục bộ để chạy độc lập (Standalone) trên Termux/PC ổn định
         config_file = "apis_config.json"
         if os.path.exists(config_file):
             try:
@@ -54,7 +55,7 @@ class CloudTestingEngine:
         return {"sms_endpoints": [], "call_endpoints": []}
 
     def execute_request_worker(self, api: Dict[str, Any], phone: str) -> bool:
-        """Hàm gửi Request độc lập trên từng luồng bằng Session riêng biệt để tránh ô nhiễm dữ liệu chéo"""
+        """Hàm gửi Request độc lập trên từng luồng bằng Session riêng biệt để tránh xung đột chéo dữ liệu"""
         name = api.get("name", "Dịch vụ ẩn danh")
         url = api.get("url", "")
         method = api.get("method", "POST").upper()
@@ -100,7 +101,7 @@ class CloudTestingEngine:
                 headers['referer'] = f"{base_origin}/"
 
         try:
-            # XỬ LÝ ĐẶC BIỆT DÀNH RIÊNG CHO CỔNG VAYXANH (BÊ NGUYÊN CƠ CHẾ CỦA FILE 6.PY VÀO THÀNH CÔNG)
+            # XỬ LÝ ĐẶC BIỆT DÀNH RIÊNG CHO CỔNG VAYXANH (ĐỒNG BỘ THEO FILE CODE 6.PY)
             if "vayxanh" in url.lower() or "vayxanh" in name.lower():
                 base_url = "https://lk.vayxanh.com"
                 headers.update({
@@ -116,7 +117,7 @@ class CloudTestingEngine:
                 })
                 worker_session.headers.update(headers)
                 
-                # Bước 1: Khởi tạo phiên (Init Session) để lấy Set-Cookie từ trang chủ
+                # Bước 1: Khởi tạo phiên (Init Session) để lấy Set-Cookie ban đầu từ trang chủ
                 init_url = f"{base_url}/"
                 init_params = {
                     "phone": phone,
@@ -138,7 +139,7 @@ class CloudTestingEngine:
             else:
                 worker_session.headers.update(headers)
 
-            # Đóng gói dữ liệu Data hoặc JSON payload
+            # Đóng gói dữ liệu Data hoặc JSON payload tùy thuộc vào api_database
             if api.get("is_json"):
                 request_kwargs = {"json": json.loads(formatted_payload)}
             else:
@@ -197,7 +198,6 @@ class CloudTestingEngine:
         print(f"\n[+] Khởi chạy Suite IVR: Đang thực thi {len(call_list)} cuộc gọi thoại...")
         print("-" * 55)
         
-        # Loại bỏ hoàn toàn hàm sync_ivr_cookies dùng chung cũ, luồng VayXanh giờ tự xử lý phiên độc lập bên trong worker
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             futures = [executor.submit(self.execute_request_worker, api, phone) for api in call_list]
             concurrent.futures.wait(futures)
@@ -206,9 +206,9 @@ class CloudTestingEngine:
         print("[✓] Hoàn tất toàn bộ chuỗi tích hợp.")
 
 
-# ==========================================
-# CẤU HÌNH HỆ THỐNG QUẢN LÝ MÃ MÁY & LICENSE
-# ==========================================
+# =================================================================
+# CÁC HÀM QUẢN LÝ GIAO DIỆN MÀU MÈ, MÃ MÁY & CHECK LICENSE
+# =================================================================
 def get_hardware_id() -> str:
     """Tự động lấy mã định danh phần cứng duy nhất (Mã máy) tùy thuộc vào OS"""
     current_os = platform.system().lower()
@@ -234,9 +234,10 @@ def get_hardware_id() -> str:
 
 
 def verify_license_key(key: str, hardware_id: str) -> bool:
-    """Gửi yêu cầu xác thực Key và Mã máy lên Server ShopVietX"""
+    """Gửi yêu cầu xác thực Key, Mã máy và Tên Tool lên Server ShopVietX"""
     try:
-        payload = {"license_key": key, "hwid": hardware_id, "tool": "spam call sms"}
+        # Gọi trực tiếp biến toàn cục TOOL_NAME đã được khai báo ở đầu file
+        payload = {"license_key": key, "hwid": hardware_id, "tool": TOOL_NAME}
         response = requests.post(SERVER_URL, json=payload, timeout=8)
         if response.status_code == 200:
             res_data = response.json()
@@ -251,12 +252,14 @@ def check_authentication_flow():
     """Luồng kiểm tra bản quyền nghiêm ngặt trước khi cho phép dùng Tool"""
     hw_id = get_hardware_id()
     
+    # Bước 1: Kiểm tra xem trên thiết bị đã lưu key hoạt động từ trước chưa
     if os.path.exists(KEY_FILE_PATH):
         with open(KEY_FILE_PATH, "r", encoding="utf-8") as f:
             saved_key = f.read().strip()
         if saved_key and verify_license_key(saved_key, hw_id):
             return True 
             
+    # Bước 2: Hiển thị form yêu cầu kích hoạt nếu chưa có key/key hết hạn
     while True:
         os.system("cls" if platform.system().lower() == "windows" else "clear")
         print("=" * 64)
@@ -264,6 +267,7 @@ def check_authentication_flow():
         print("=" * 64)
         print(f"  [!] Trạng thái: Chưa kích hoạt bản quyền!")
         print(f"  • Mã máy (HWID) của bạn: {hw_id}")
+        print(f"  • Định danh sản phẩm: {TOOL_NAME}")
         print("  • Vui lòng gửi Mã máy trên cho Admin để mua bản quyền.")
         print("-" * 64)
         
@@ -289,7 +293,7 @@ def check_authentication_flow():
 
 
 def show_banner_introduction():
-    """Hiển thị phần giới thiệu thông tin công cụ sau khi đã qua bước check key"""
+    """Hiển thị phần giới thiệu thông tin công cụ sau khi đã qua bước check key thành công"""
     os.system("cls" if platform.system().lower() == "windows" else "clear")
     hw_id = get_hardware_id()
     
@@ -297,7 +301,8 @@ def show_banner_introduction():
     print("         MATRIX NOTIFICATION TESTING SYSTEM SYSTEM          ")
     print("   Chạy trên: Windows PE / Windows Desktop / Termux (Linux) ")
     print("=" * 64)
-    print(f"  • Phiên bản: Cloud Integration v3.5 (Chạy trên RAM)")
+    print(f"  • Sản phẩm: {TOOL_NAME.upper()}")
+    print(f"  • Phiên bản: Cloud Integration v3.5 (Chạy trên RAM/File)")
     print(f"  • Hệ điều hành: {platform.system()} {platform.release()}")
     print(f"  • Mã máy của bạn: {hw_id}")
     print(f"  • Trạng thái bản quyền: Đã kích hoạt [✓]")
@@ -313,7 +318,10 @@ def render_terminal_menu():
 
 
 def run_application():
+    # Thực hiện chặn kiểm tra Key ngay lập tức khi bật tool
     check_authentication_flow()
+    
+    # Nếu vượt qua vòng check key thành công mới bắt đầu dựng Banner và Menu
     show_banner_introduction()
     core_engine = CloudTestingEngine()
     
