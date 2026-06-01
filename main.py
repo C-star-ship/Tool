@@ -2,7 +2,6 @@ import os
 import sys
 import json
 import time
-import hashlib
 import platform
 import subprocess
 import logging
@@ -20,12 +19,6 @@ G = '\033[92m'  # Green (Xanh lá)
 R = '\033[91m'  # Red (Đỏ)
 Y = '\033[93m'  # Yellow (Vàng)
 W = '\033[0m'   # White/Reset (Trắng - Trả về mặc định)
-
-# ==========================================
-# CẤU HÌNH HỆ THỐNG LICENSE (BẢN QUYỀN OFFLINE)
-# ==========================================
-SECRET = "ShopVietX_GolikeTool_2025"  # Khóa bí mật trùng khớp với gen_key.py
-KEY_FILE_PATH = os.path.join(os.path.expanduser("~"), ".matrix_sms_key")
 
 # ==========================================
 # CẤU HÌNH LOGGING CÓ MÀU SẮC THỜI GIAN
@@ -69,7 +62,7 @@ class CloudTestingEngine:
         return {"sms_endpoints": [], "call_endpoints": []}
 
     def sync_ivr_cookies(self, phone: str) -> None:
-        """Đồng bộ phiên kết nối (Cookie) cho cổng IVR VayXanh - ĐÃ SỬA THEO 6.PY"""
+        """Đồng bộ phiên kết nối (Cookie) cho cổng IVR VayXanh"""
         init_url = "https://lk.vayxanh.com/"
         params = {
             "phone": phone, 
@@ -110,7 +103,6 @@ class CloudTestingEngine:
         method = api.get("method", "POST").upper()
         headers = api.get("headers", {}).copy() 
         
-        # ĐÃ SỬA: Ép định dạng headers di động riêng cho luồng VayXanh để bypass WAF
         if url and "vayxanh" in url.lower():
             headers.update({
                 'accept': 'application/json, text/plain, */*',
@@ -205,107 +197,11 @@ class CloudTestingEngine:
 
 
 # ==========================================
-# CÁC HÀM TRỢ GIÚP: MÃ MÁY & CHECK LICENSE OFFLINE
+# CÁC HÀM TRỢ GIÚP GIAO DIỆN
 # ==========================================
-def get_hardware_id() -> str:
-    """Tự động lấy mã định danh phần cứng duy nhất (Mã máy) tùy thuộc vào OS"""
-    current_os = platform.system().lower()
-    raw_id = "UNKNOWN_DEVICE"
-    
-    try:
-        if current_os == "windows":
-            cmd = "wmic csproduct get uuid"
-            output = subprocess.check_output(cmd, shell=True).decode().split()
-            if len(output) >= 2:
-                raw_id = output[1]
-        elif current_os == "linux":
-            if os.path.exists("/etc/machine-id"):
-                with open("/etc/machine-id", "r") as f:
-                    raw_id = f.read().strip()
-            elif os.path.exists("/var/lib/dbus/machine-id"):
-                with open("/var/lib/dbus/machine-id", "r") as f:
-                    raw_id = f.read().strip()
-    except Exception:
-        pass
-
-    return hashlib.md5(raw_id.encode('utf-8')).hexdigest().upper()
-
-
-def verify_license_key(key: str) -> bool:
-    """Xác thực Key offline dựa trên chữ ký mã hóa và mốc thời gian thời hạn"""
-    try:
-        # Làm sạch định dạng đầu vào giống gen_key.py
-        raw = key.strip().upper().replace("-", "").replace(" ", "")
-        if len(raw) != 24:
-            return False
-            
-        payload = raw[:16]   # 16 ký tự đầu là mã băm hash
-        expire_s = raw[16:]  # 8 ký tự cuối là thời gian dạng HEX
-        
-        # Thử giải mã mốc thời gian timestamp
-        expire_ts = int(expire_s, 16)
-        
-        # Tính toán lại chữ ký số dự kiến với SECRET bí mật
-        expected = hashlib.sha256(f"{SECRET}{expire_s}".encode()).hexdigest()[:16].upper()
-        
-        # Kiểm tra tính toàn vẹn chữ ký số của Key
-        if payload != expected:
-            return False
-            
-        # Kiểm tra thời hạn hết hạn so với thời gian hiện tại
-        if int(time.time()) > expire_ts:
-            return False
-            
-        return True
-    except Exception:
-        return False
-
-
-def check_authentication_flow():
-    """Luồng kiểm tra bản quyền nghiêm ngặt trước khi cho phép dùng Tool"""
-    hw_id = get_hardware_id()
-    
-    if os.path.exists(KEY_FILE_PATH):
-        with open(KEY_FILE_PATH, "r", encoding="utf-8") as f:
-            saved_key = f.read().strip()
-        if saved_key and verify_license_key(saved_key):
-            return True 
-            
-    while True:
-        os.system("cls" if platform.system().lower() == "windows" else "clear")
-        print(f"{C}=" * 64 + W)
-        print(f"{C}         XÁC THỰC BẢN QUYỀN HỆ THỐNG - SHOPVIETX.IO.VN       {W}")
-        print(f"{C}=" * 64 + W)
-        print(f"  {Y}[!] Trạng thái: Chưa kích hoạt bản quyền!{W}")
-        print(f"  {C}• Mã máy (HWID) của bạn: {W}{G}{hw_id}{W}")
-        print(f"  {C}• Vui lòng gửi Mã máy trên cho Admin để mua bản quyền.{W}")
-        print(f"{C}-" * 64 + W)
-        
-        user_key = input(f"{G}[?] Nhập Key bản quyền của bạn (Hoặc bấm '0' để thoát): {W}").strip()
-        
-        if user_key == "0":
-            print(f"{G}[+] Đóng chương trình.{W}")
-            sys.exit(0)
-            
-        if not user_key:
-            continue
-            
-        print(f"{G}[+] Đang xác thực chữ ký khóa cục bộ...{W}")
-        if verify_license_key(user_key):
-            with open(KEY_FILE_PATH, "w", encoding="utf-8") as f:
-                f.write(user_key)
-            print(f"{G}[✓] KÍCH HOẠT THÀNH CÔNG! Đang vào hệ thống...{W}")
-            time.sleep(1.5)
-            return True
-        else:
-            print(f"{R}[-] Lỗi: Key không hợp lệ hoặc đã hết hạn sử dụng!{W}")
-            input(f"\n{Y}[Nhấn Enter để thử lại...]{W}")
-
-
 def show_banner_introduction():
-    """Hiển thị phần giới thiệu thông tin công cụ sau khi đã qua bước check key"""
+    """Hiển thị thông tin công cụ khi khởi chạy"""
     os.system("cls" if platform.system().lower() == "windows" else "clear")
-    hw_id = get_hardware_id()
     
     print(f"{C}=" * 64 + W)
     print(f"{G}         MATRIX NOTIFICATION TESTING SYSTEM SYSTEM          {W}")
@@ -313,21 +209,19 @@ def show_banner_introduction():
     print(f"{C}=" * 64 + W)
     print(f"  {C}• Phiên bản: {W}Cloud Integration v3.5 (Chạy trên RAM)")
     print(f"  {C}• Hệ điều hành: {W}{platform.system()} {platform.release()}")
-    print(f"  {C}• Mã máy của bạn: {W}{hw_id}")
-    print(f"  {C}• Trạng thái bản quyền: {G}Đã kích hoạt [✓]{W}")
+    print(f"  {C}• Chế độ: {Y}Chạy thử nghiệm công khai (Bỏ qua Check Key){W}")
     print(f"{C}=" * 64 + W)
 
 
 def render_terminal_menu():
     print(f"\n{C}═{W}"*20 + f"{C} MENU ĐIỀU KHIỂN CHÍNH {W}" + f"{C}═{W}"*20)
-    print(f"  {G}[1]{W} chỉ spam SMS (SMS Only)")
-    print(f"  {G}[2]{W} Chạy toàn diện (SMS + Call)")
+    print(f"  {G}[1]{W} Chỉ test SMS (SMS Only)")
+    print(f"  {G}[2]{W} Chạy hỗn hợp (SMS + Call)")
     print(f"  {G}[0]{W} Giải phóng bộ nhớ & Thoát chương trình")
     print(f"{C}═{W}"*64)
 
 
 def run_application():
-    check_authentication_flow()
     show_banner_introduction()
     core_engine = CloudTestingEngine()
     
