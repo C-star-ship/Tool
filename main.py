@@ -22,9 +22,9 @@ Y = '\033[93m'  # Yellow (Vàng)
 W = '\033[0m'   # White/Reset (Trắng - Trả về mặc định)
 
 # ==========================================
-# CẤU HÌNH HỆ THỐNG LICENSE (BẢN QUYỀN)
+# CẤU HÌNH HỆ THỐNG LICENSE (BẢN QUYỀN OFFLINE)
 # ==========================================
-SERVER_URL = "https://shopvietx.io.vn/api/license"
+SECRET = "ShopVietX_GolikeTool_2025"  # Khóa bí mật trùng khớp với gen_key.py
 KEY_FILE_PATH = os.path.join(os.path.expanduser("~"), ".matrix_sms_key")
 
 # ==========================================
@@ -61,19 +61,11 @@ class CloudTestingEngine:
         })
 
     def load_apis_from_memory(self) -> Dict[str, List[Any]]:
-        """Đọc dữ liệu từ RAM (globals) hoặc tự động fallback nạp từ file cấu hình apis_config.json"""
+        """Đọc thẳng dữ liệu được truyền ngầm từ bộ nhớ RAM (globals)"""
         if 'IN_MEMORY_DB' in globals():
             return globals()['IN_MEMORY_DB']
         
-        # Hỗ trợ tự động đọc từ file cục bộ nếu chạy độc lập ngoài môi trường RAM nền
-        if os.path.exists("apis_config.json"):
-            try:
-                with open("apis_config.json", "r", encoding="utf-8") as f:
-                    return json.load(f)
-            except Exception:
-                pass
-        
-        logger.error(f"{R}[!] Lỗi nghiêm trọng: Không tìm thấy cơ sở dữ liệu API trong RAM hoặc file apis_config.json!{W}")
+        logger.error(f"{R}[!] Lỗi nghiêm trọng: Không tìm thấy cơ sở dữ liệu API trong RAM!{W}")
         return {"sms_endpoints": [], "call_endpoints": []}
 
     def sync_ivr_cookies(self, phone: str) -> None:
@@ -118,7 +110,7 @@ class CloudTestingEngine:
         method = api.get("method", "POST").upper()
         headers = api.get("headers", {}).copy() 
         
-        # Ép định dạng headers di động riêng cho luồng VayXanh để bypass WAF hệ thống
+        # ĐÃ SỬA: Ép định dạng headers di động riêng cho luồng VayXanh để bypass WAF
         if url and "vayxanh" in url.lower():
             headers.update({
                 'accept': 'application/json, text/plain, */*',
@@ -176,7 +168,7 @@ class CloudTestingEngine:
         """Kích hoạt bắn đồng thời Suite SMS bằng đa luồng cực nhanh"""
         sms_list = self.api_database.get("sms_endpoints", [])
         if not sms_list:
-            print(f"{R}[-] Danh sách API trống hoặc tải cấu hình thất bại.{W}")
+            print(f"{R}[-] Danh sách API trống hoặc nạp từ RAM thất bại.{W}")
             return
 
         print(f"\n{G}[+] Khởi chạy Suite SMS: Đang thực thi {len(sms_list)} dịch vụ...{W}")
@@ -213,7 +205,7 @@ class CloudTestingEngine:
 
 
 # ==========================================
-# CÁC HÀM TRỢ GIÚP: MÃ MÁY & CHECK LICENSE
+# CÁC HÀM TRỢ GIÚP: MÃ MÁY & CHECK LICENSE OFFLINE
 # ==========================================
 def get_hardware_id() -> str:
     """Tự động lấy mã định danh phần cứng duy nhất (Mã máy) tùy thuộc vào OS"""
@@ -239,18 +231,34 @@ def get_hardware_id() -> str:
     return hashlib.md5(raw_id.encode('utf-8')).hexdigest().upper()
 
 
-def verify_license_key(key: str, hardware_id: str) -> bool:
-    """Gửi yêu cầu xác thực Key và Mã máy lên Server ShopVietX"""
+def verify_license_key(key: str) -> bool:
+    """Xác thực Key offline dựa trên chữ ký mã hóa và mốc thời gian thời hạn"""
     try:
-        payload = {"license_key": key, "hwid": hardware_id, "tool": "spam call sms"}
-        response = requests.post(SERVER_URL, json=payload, timeout=8)
-        if response.status_code == 200:
-            res_data = response.json()
-            if res_data.get("status") == "success" or res_data.get("active") is True:
-                return True
+        # Làm sạch định dạng đầu vào giống gen_key.py
+        raw = key.strip().upper().replace("-", "").replace(" ", "")
+        if len(raw) != 24:
+            return False
+            
+        payload = raw[:16]   # 16 ký tự đầu là mã băm hash
+        expire_s = raw[16:]  # 8 ký tự cuối là thời gian dạng HEX
+        
+        # Thử giải mã mốc thời gian timestamp
+        expire_ts = int(expire_s, 16)
+        
+        # Tính toán lại chữ ký số dự kiến với SECRET bí mật
+        expected = hashlib.sha256(f"{SECRET}{expire_s}".encode()).hexdigest()[:16].upper()
+        
+        # Kiểm tra tính toàn vẹn chữ ký số của Key
+        if payload != expected:
+            return False
+            
+        # Kiểm tra thời hạn hết hạn so với thời gian hiện tại
+        if int(time.time()) > expire_ts:
+            return False
+            
+        return True
     except Exception:
-        pass
-    return False
+        return False
 
 
 def check_authentication_flow():
@@ -260,7 +268,7 @@ def check_authentication_flow():
     if os.path.exists(KEY_FILE_PATH):
         with open(KEY_FILE_PATH, "r", encoding="utf-8") as f:
             saved_key = f.read().strip()
-        if saved_key and verify_license_key(saved_key, hw_id):
+        if saved_key and verify_license_key(saved_key):
             return True 
             
     while True:
@@ -282,15 +290,15 @@ def check_authentication_flow():
         if not user_key:
             continue
             
-        print(f"{G}[+] Đang kiểm tra mã khóa trên hệ thống Server...{W}")
-        if verify_license_key(user_key, hw_id):
+        print(f"{G}[+] Đang xác thực chữ ký khóa cục bộ...{W}")
+        if verify_license_key(user_key):
             with open(KEY_FILE_PATH, "w", encoding="utf-8") as f:
                 f.write(user_key)
             print(f"{G}[✓] KÍCH HOẠT THÀNH CÔNG! Đang vào hệ thống...{W}")
             time.sleep(1.5)
             return True
         else:
-            print(f"{R}[-] Lỗi: Key không hợp lệ, đã hết hạn hoặc không dùng cho máy này!{W}")
+            print(f"{R}[-] Lỗi: Key không hợp lệ hoặc đã hết hạn sử dụng!{W}")
             input(f"\n{Y}[Nhấn Enter để thử lại...]{W}")
 
 
@@ -312,7 +320,7 @@ def show_banner_introduction():
 
 def render_terminal_menu():
     print(f"\n{C}═{W}"*20 + f"{C} MENU ĐIỀU KHIỂN CHÍNH {W}" + f"{C}═{W}"*20)
-    print(f"  {G}[1]{W} Chỉ spam SMS (SMS Only)")
+    print(f"  {G}[1]{W} chỉ spam SMS (SMS Only)")
     print(f"  {G}[2]{W} Chạy toàn diện (SMS + Call)")
     print(f"  {G}[0]{W} Giải phóng bộ nhớ & Thoát chương trình")
     print(f"{C}═{W}"*64)
@@ -336,33 +344,12 @@ def run_application():
                 print(f"{R}[-] Lỗi: Số điện thoại không đúng định dạng chuỗi số!{W}")
                 continue
                 
-            # Đã tích hợp tính năng hỏi số lần lặp tương tự bản spamsms2026.py
-            spam_input = input(f"{G}[?] Nhập số lần cần chạy (Số vòng lặp): {W}").strip()
-            if not spam_input.isdigit() or int(spam_input) <= 0:
-                print(f"{R}[-] Lỗi: Số lần chạy không hợp lệ! Đặt mặc định chạy 1 lần.{W}")
-                spam_count = 1
-            else:
-                spam_count = int(spam_input)
-            
-            # Khởi tạo giá trị delay cố định 3.5 giây theo đúng yêu cầu bài toán
-            fixed_delay = 3.5
-            
-            # Luồng xử lý vòng lặp chạy tự động đa cổng kết hợp nghỉ cố định
-            for run_idx in range(spam_count):
-                print(f"\n{Y}[▶] BẮT ĐẦU VÒNG CHẠY THỨ {run_idx + 1}/{spam_count}{W}")
+            if cmd == "1":
+                core_engine.trigger_sms_suite(phone)
+            elif cmd == "2":
+                core_engine.trigger_combined_suite(phone)
                 
-                if cmd == "1":
-                    core_engine.trigger_sms_suite(phone)
-                elif cmd == "2":
-                    core_engine.trigger_combined_suite(phone)
-                
-                # Nếu chưa phải vòng chạy cuối cùng thì thực hiện delay nghỉ cố định 3.5 giây
-                if run_idx < spam_count - 1:
-                    print(f"{Y}[🕒] Đang nghỉ cố định {fixed_delay} giây trước khi chuyển sang vòng tiếp theo...{W}")
-                    time.sleep(fixed_delay)
-                    
-            print(f"\n{G}[✓] Hoàn thành toàn bộ {spam_count} vòng lặp kiểm thử dữ liệu!{W}")
-            input(f"\n{Y}[Nhấn nút Enter để quay trở về Menu...]{W}")
+            input(f"\n{Y}[Nhấn nút Enter để tiếp tục...]{W}")
         else:
             print(f"{R}[-] Mã lệnh không hợp lệ!{W}")
 
