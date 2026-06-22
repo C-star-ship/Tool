@@ -781,7 +781,7 @@ class GolikeAPI:
         # ══════════════════════════════════════════════════════════════════════
         # DELAY TOÀN CỤC — áp dụng cho TẤT CẢ platform, TẤT CẢ loại job
         # ══════════════════════════════════════════════════════════════════════
-        delay = random.uniform(10, 25)
+        delay = random.uniform(6, 13)
         print(f"⏳ Delay {delay:.1f}s trước khi gửi complete")
         time.sleep(delay)
 
